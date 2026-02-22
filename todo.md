@@ -416,7 +416,7 @@ URL: https://electriclief.github.io/mycluster/
 | R5 | ✅ Complete | Standalone server |
 | R6 | ✅ Complete | GUI with real-time updates |
 | R7 | ✅ Complete | Testing + Documentation |
-| R8 | 🏗️ In Progress | File storage ✅, Service plugins ✅, Security ✅, DevOps ⏳ |
+| R8 | 🏗️ In Progress | File storage ✅, Service plugins ✅, Security ✅, DevOps ✅, E2E ⏳ |
 
 ---
 
@@ -447,9 +447,12 @@ URL: https://electriclief.github.io/mycluster/
 - [x] CLI options for security configuration
 - [x] Documentation: `Docs/SECURITY.md`
 
-### R8.4 Deployment & DevOps ⏳ PENDING
-- [ ] Docker containers
-- [ ] Systemd services
+### R8.4 Deployment & DevOps ✅ COMPLETE
+- [x] Dockerfile for server (multi-stage build)
+- [x] Dockerfile.agent for agent
+- [x] docker-compose.yml for orchestration
+- [x] systemd service files (server + agent)
+- [x] Documentation: `Docs/DEPLOYMENT.md`
 
 ### R8.5 E2E Testing ⏳ PENDING
 - [ ] Playwright GUI tests
