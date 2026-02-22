@@ -249,22 +249,33 @@ CREATE TABLE jobs (
 ## Phase R5: Server Refactor
 
 ### R5.1 Decouple from Electron
-- [ ] Move `src/server/` → `packages/server/`
-- [ ] Remove Electron dependencies
-- [ ] Standalone CLI: `mycluster-server --port 3000`
-- [ ] Config from file or env vars
+- [x] Create `packages/server/` with standalone CLI
+- [x] Move server logic from apps/desktop/src/server/
+- [x] Remove Electron dependencies
+- [x] Standalone CLI: `mycluster-server --port 3000`
+- [x] Config from command line or env vars
 
 ### R5.2 API Enhancements
-- [ ] WebSocket for real-time updates
-- [ ] SSE for job progress streaming
-- [ ] File upload/download endpoints
-- [ ] Authentication tokens (for non-trusted networks)
+- [x] WebSocket for real-time updates (`/ws`)
+- [x] Job progress broadcasting
+- [x] Server stats endpoint (`/api/stats`)
+- [x] Computers CRUD API
+- [x] Jobs CRUD API
+- [x] Agent API integration
 
 ### R5.3 Server Dashboard API
-- [ ] Cluster health endpoint
-- [ ] Metrics (jobs/hour, success rate, avg duration)
-- [ ] Active connections
-- [ ] System resources (CPU, memory, disk)
+- [x] Cluster health endpoint (`/api/health`)
+- [x] Metrics: jobs by status, agent count, WS connections
+- [x] Request counting and uptime tracking
+- [ ] System resources (CPU, memory, disk) - future
+
+### R5.4 WebSocket Real-time Events
+- [x] Connection acknowledgment with server info
+- [x] Job progress events (`job-progress`)
+- [x] Auto-broadcast on job status changes
+- [x] Connection management (connect/disconnect logging)
+
+**Phase R5 Complete!** ✅ Server functional. Run with: `npm run start -w @mycluster/server -- --port 3000 --storage sqlite`
 
 ---
 

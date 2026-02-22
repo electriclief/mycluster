@@ -1,0 +1,39 @@
+{
+  "name": "@mycluster/server",
+  "version": "0.1.0",
+  "description": "Standalone HTTP server for MyCluster with WebSocket support",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mycluster-server": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["server", "mycluster", "http", "websocket"],
+  "author": "Leafdriving",
+  "license": "MIT",
+  "dependencies": {
+    "@mycluster/core": "^0.1.0",
+    "@mycluster/storage-yaml": "^0.1.0",
+    "@mycluster/storage-sqlite": "^0.1.0",
+    "commander": "^12.0.0",
+    "express": "^4.21.2",
+    "cors": "^2.8.6",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.13.9",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.3"
+  }
+}
