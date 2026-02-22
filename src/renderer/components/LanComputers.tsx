@@ -29,7 +29,11 @@ interface ScanResult {
   isOnline: boolean;
 }
 
-function LanDiscovery() {
+interface LanComputersProps {
+  onComputerAdded?: () => void;
+}
+
+function LanComputers({ onComputerAdded }: LanComputersProps) {
   const [computers, setComputers] = useState<LanComputer[]>([]);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -39,12 +43,8 @@ function LanDiscovery() {
   const [computerName, setComputerName] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [selectedComputer, setSelectedComputer] = useState<LanComputer | null>(null);
-  const [showServiceDialog, setShowServiceDialog] = useState(false);
-  const [ollamaBaseUrl, setOllamaBaseUrl] = useState('http://192.168.1.100:11434');
-  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
-  const [checkingOllama, setCheckingOllama] = useState(false);
   const [shouldStopScan, setShouldStopScan] = useState(false);
+  const [autoDetecting, setAutoDetecting] = useState<string | null>(null);
 
   const loadComputers = async () => {
     const list = await window.electronAPI.invoke('lan:getComputers');
@@ -65,25 +65,22 @@ function LanDiscovery() {
     setShouldStopScan(false);
 
     try {
-      const total = 61; // 100 to 160
+      const total = 61;
       let completed = 0;
-      
-      // Scan with progress updates
+
       for (let i = 100; i <= 160; i++) {
-        if (shouldStopScan) {
-          break;
-        }
-        
+        if (shouldStopScan) break;
+
         const ip = `192.168.1.${i}`;
         setCurrentIp(ip);
-        
+
         const isOnline = await window.electronAPI.invoke('lan:ping', ip);
         setScanResults(prev => [...prev, { ip, isOnline }]);
-        
+
         completed++;
         setScanProgress(Math.round((completed / total) * 100));
       }
-      
+
       if (!shouldStopScan) {
         setCurrentIp('');
         const finalOnlineCount = scanResults.filter(r => r.isOnline).length;
@@ -128,21 +125,23 @@ function LanDiscovery() {
     if (!selectedIp || !computerName.trim()) return;
 
     try {
-      await window.electronAPI.invoke('lan:addComputer', {
+      const result = await window.electronAPI.invoke('lan:addComputerWithAutoDetect', {
         ipAddress: selectedIp,
         computerName: computerName.trim(),
         isOnline: true,
         lastSeen: new Date().toISOString(),
-      });
+      }) as { computer: LanComputer; detectedServices: unknown[] };
 
+      const serviceCount = result.detectedServices?.length || 0;
       setMessage({
         type: 'success',
-        text: `Added "${computerName.trim()}" (${selectedIp}) to your LAN computers.`,
+        text: `Added "${computerName.trim()}" (${selectedIp})${serviceCount > 0 ? ` with ${serviceCount} auto-detected service(s)!` : '.'}`,
       });
       setShowAddDialog(false);
       setSelectedIp(null);
       setComputerName('');
       await loadComputers();
+      onComputerAdded?.();
     } catch (error) {
       setMessage({
         type: 'error',
@@ -180,70 +179,6 @@ function LanDiscovery() {
     await loadComputers();
   };
 
-  const handleAddService = (computer: LanComputer, serviceType: 'ollama' | 'custom') => {
-    setSelectedComputer(computer);
-    if (serviceType === 'ollama') {
-      setOllamaBaseUrl(`http://${computer.ipAddress}:11434`);
-    }
-    setShowServiceDialog(true);
-  };
-
-  const handleCheckOllama = async () => {
-    setCheckingOllama(true);
-    try {
-      const result = await window.electronAPI.invoke('lan:checkOllama', ollamaBaseUrl);
-      if (result.available) {
-        setOllamaModels(result.models || []);
-        setMessage({
-          type: 'success',
-          text: `Ollama found! ${result.models?.length || 0} models available.`,
-        });
-      } else {
-        setMessage({
-          type: 'error',
-          text: `Ollama not available: ${result.error}`,
-        });
-        setOllamaModels([]);
-      }
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: `Failed to check Ollama: ${(error as Error).message}`,
-      });
-    } finally {
-      setCheckingOllama(false);
-    }
-  };
-
-  const handleSaveOllamaService = async () => {
-    if (!selectedComputer) return;
-
-    try {
-      await window.electronAPI.invoke('lan:addService', selectedComputer.id, {
-        type: 'ollama',
-        name: 'Ollama API',
-        enabled: true,
-        baseUrl: ollamaBaseUrl,
-        port: 11434,
-        config: { models: ollamaModels },
-      });
-
-      setMessage({
-        type: 'success',
-        text: `Added Ollama service to "${selectedComputer.computerName}".`,
-      });
-      setShowServiceDialog(false);
-      setSelectedComputer(null);
-      setOllamaModels([]);
-      await loadComputers();
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: `Failed to add service: ${(error as Error).message}`,
-      });
-    }
-  };
-
   const handleRemoveService = async (computerId: string, serviceId: string, serviceName: string) => {
     if (!confirm(`Remove "${serviceName}" service?`)) return;
 
@@ -268,8 +203,6 @@ function LanDiscovery() {
 
   return (
     <div>
-      <h2 style={{ marginBottom: '20px', color: '#e94560' }}>LAN Computers</h2>
-
       {/* Messages */}
       {message && (
         <div
@@ -317,7 +250,7 @@ function LanDiscovery() {
           >
             {isScanning ? 'Scanning...' : '🔍 Scan LAN'}
           </button>
-          
+
           {isScanning && (
             <button
               onClick={handleStopScan}
@@ -372,14 +305,13 @@ function LanDiscovery() {
               <h4 style={{ color: '#aaa', margin: 0 }}>
                 Scan Results
                 {isScanning && (
-                  <span style={{ 
-                    marginLeft: '10px', 
+                  <span style={{
+                    marginLeft: '10px',
                     fontSize: '0.75rem',
                     padding: '2px 8px',
                     backgroundColor: '#e94560',
                     borderRadius: '4px',
                     color: '#fff',
-                    animation: 'pulse 1s infinite',
                   }}>
                     LIVE
                   </span>
@@ -510,20 +442,6 @@ function LanDiscovery() {
                       🔄 Check
                     </button>
                     <button
-                      onClick={() => handleAddService(computer, 'ollama')}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#0f3460',
-                        border: '1px solid #e94560',
-                        borderRadius: '4px',
-                        color: '#e94560',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      ➕ Add Service
-                    </button>
-                    <button
                       onClick={() => handleRemoveComputer(computer.id, computer.computerName)}
                       style={{
                         padding: '6px 12px',
@@ -543,7 +461,9 @@ function LanDiscovery() {
                 {/* Services List */}
                 {computer.services && computer.services.length > 0 && (
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #1a1a2e' }}>
-                    <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '8px' }}>Services:</div>
+                    <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: '8px' }}>
+                      Auto-Detected Services:
+                    </div>
                     {computer.services.map((service) => (
                       <div
                         key={service.id}
@@ -568,16 +488,16 @@ function LanDiscovery() {
                               {service.baseUrl || `Port ${service.port}`}
                               {service.models && service.models.length > 0 && (
                                 <span style={{ marginLeft: '10px', color: '#aaa' }}>
-                                  • {service.models.length} models
+                                  • {service.models.length} models available
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span style={{ 
-                            fontSize: '0.75rem', 
-                            padding: '2px 8px', 
+                          <span style={{
+                            fontSize: '0.75rem',
+                            padding: '2px 8px',
                             borderRadius: '4px',
                             backgroundColor: service.enabled ? '#1b5e20' : '#424242',
                             color: '#fff',
@@ -601,6 +521,15 @@ function LanDiscovery() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* No services detected */}
+                {(!computer.services || computer.services.length === 0) && (
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #1a1a2e' }}>
+                    <p style={{ color: '#666', fontSize: '0.85rem', margin: 0 }}>
+                      No services auto-detected. Services like Ollama will appear here when running.
+                    </p>
                   </div>
                 )}
               </div>
@@ -637,6 +566,9 @@ function LanDiscovery() {
             <h3 style={{ color: '#e94560', marginTop: 0 }}>Add Computer</h3>
             <p style={{ color: '#888', marginBottom: '20px' }}>
               Adding computer at <strong style={{ color: '#eee', fontFamily: 'monospace' }}>{selectedIp}</strong>
+            </p>
+            <p style={{ color: '#4caf50', fontSize: '0.9rem', marginBottom: '20px' }}>
+              🔍 Auto-detecting services (Ollama, etc.)...
             </p>
 
             <div style={{ marginBottom: '20px' }}>
@@ -699,144 +631,8 @@ function LanDiscovery() {
           </div>
         </div>
       )}
-
-      {/* Add Service Dialog */}
-      {showServiceDialog && selectedComputer && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#16213e',
-              padding: '30px',
-              borderRadius: '12px',
-              maxWidth: '500px',
-              width: '100%',
-            }}
-          >
-            <h3 style={{ color: '#e94560', marginTop: 0 }}>🦙 Add Ollama Service</h3>
-            <p style={{ color: '#888', marginBottom: '20px' }}>
-              Adding Ollama service to <strong style={{ color: '#eee' }}>{selectedComputer.computerName}</strong>
-            </p>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#aaa' }}>
-                Ollama Base URL
-              </label>
-              <input
-                type="text"
-                value={ollamaBaseUrl}
-                onChange={(e) => setOllamaBaseUrl(e.target.value)}
-                placeholder="http://192.168.1.100:11434"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  backgroundColor: '#0f3460',
-                  border: '1px solid #1a1a2e',
-                  borderRadius: '6px',
-                  color: '#eee',
-                  fontSize: '1rem',
-                  fontFamily: 'monospace',
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-              <button
-                onClick={handleCheckOllama}
-                disabled={checkingOllama}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: checkingOllama ? '#0f3460' : '#e94560',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#eee',
-                  cursor: checkingOllama ? 'not-allowed' : 'pointer',
-                  fontSize: '1rem',
-                  opacity: checkingOllama ? 0.7 : 1,
-                }}
-              >
-                {checkingOllama ? '🔍 Checking...' : '🔍 Check Ollama'}
-              </button>
-            </div>
-
-            {ollamaModels.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#aaa' }}>
-                  Available Models ({ollamaModels.length})
-                </label>
-                <select
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: '#0f3460',
-                    border: '1px solid #1a1a2e',
-                    borderRadius: '6px',
-                    color: '#eee',
-                    fontSize: '1rem',
-                  }}
-                >
-                  {ollamaModels.map((model) => (
-                    <option key={model} value={model}>{model}</option>
-                  ))}
-                </select>
-                <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '8px' }}>
-                  Model selection will be used for future features.
-                </p>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={handleSaveOllamaService}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#e94560',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#eee',
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                }}
-              >
-                Add Service
-              </button>
-              <button
-                onClick={() => {
-                  setShowServiceDialog(false);
-                  setSelectedComputer(null);
-                  setOllamaModels([]);
-                }}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#0f3460',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#eee',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-export default LanDiscovery;
+export default LanComputers;

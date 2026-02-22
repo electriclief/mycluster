@@ -49,32 +49,33 @@ function Settings() {
     if (modeChanged) {
       setShowRestartDialog(true);
     } else {
-      setMessage({ type: 'success', text: 'Settings saved!' });
+      setMessage({ type: 'success', text: 'Settings saved successfully!' });
       setTimeout(() => setMessage(null), 3000);
     }
   };
 
-  const handleExport = async () => {
-    const data = await window.electronAPI.config.export();
-    setExportData(data);
+  const handleExport = () => {
+    const json = JSON.stringify(config, null, 2);
+    setExportData(json);
     setShowExport(true);
+    setShowImport(false);
   };
 
-  const handleImport = async () => {
-    const success = await window.electronAPI.config.import(importData);
-    if (success) {
-      setMessage({ type: 'success', text: 'Configuration imported! Restart required.' });
+  const handleImport = () => {
+    try {
+      const parsed = JSON.parse(importData);
+      saveConfig(parsed);
+      setMessage({ type: 'success', text: 'Configuration imported successfully!' });
       setShowImport(false);
       setImportData('');
-      setShowRestartDialog(true);
-    } else {
+      setTimeout(() => setMessage(null), 3000);
+    } catch {
       setMessage({ type: 'error', text: 'Invalid JSON configuration' });
     }
-    setTimeout(() => setMessage(null), 3000);
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(exportData);
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(exportData);
     setMessage({ type: 'success', text: 'Copied to clipboard!' });
     setTimeout(() => setMessage(null), 3000);
   };
@@ -82,6 +83,21 @@ function Settings() {
   return (
     <div>
       <h2 style={{ marginBottom: '20px', color: '#e94560' }}>Settings</h2>
+
+      {/* Messages */}
+      {message && (
+        <div
+          style={{
+            padding: '12px',
+            marginBottom: '20px',
+            borderRadius: '6px',
+            backgroundColor: message.type === 'success' ? '#00c853' : '#ff5252',
+            color: '#fff',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #0f3460', paddingBottom: '10px' }}>
@@ -115,251 +131,138 @@ function Settings() {
         </button>
       </div>
 
-      {/* Messages */}
-      {message && (
-        <div
-          style={{
-            padding: '12px',
-            marginBottom: '20px',
-            borderRadius: '6px',
-            backgroundColor: message.type === 'success' ? '#00c853' : '#ff5252',
-            color: '#fff',
-          }}
-        >
-          {message.text}
-        </div>
-      )}
-
       {/* Tab Content */}
       {activeTab === 'general' ? (
         <>
-      {/* Instance Info */}
-      <div
-        style={{
-          padding: '20px',
-          backgroundColor: '#16213e',
-          borderRadius: '8px',
-          border: '1px solid #0f3460',
-          marginBottom: '20px',
-        }}
-      >
-        <h3 style={{ marginBottom: '15px', color: '#aaa' }}>Instance Information</h3>
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{ color: '#888', fontSize: '0.9rem' }}>Instance ID</label>
+          {/* Instance Info */}
           <div
             style={{
-              fontFamily: 'monospace',
-              backgroundColor: '#0f3460',
-              padding: '10px',
-              borderRadius: '4px',
-              marginTop: '5px',
-              wordBreak: 'break-all',
+              padding: '20px',
+              backgroundColor: '#16213e',
+              borderRadius: '8px',
+              border: '1px solid #0f3460',
+              marginBottom: '20px',
             }}
           >
-            {instanceId || 'Loading...'}
+            <h3 style={{ marginBottom: '15px', color: '#aaa' }}>Instance Information</h3>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ color: '#888', fontSize: '0.9rem' }}>Instance ID</label>
+              <div
+                style={{
+                  fontFamily: 'monospace',
+                  backgroundColor: '#0f3460',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  color: '#eee',
+                }}
+              >
+                {instanceId || 'Loading...'}
+              </div>
+            </div>
           </div>
-        </div>
-        <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '10px' }}>
-          This ID is used to identify this instance on the LAN. Auth tokens are handled automatically.
-        </p>
-      </div>
 
-      {/* Mode Selection */}
-      <div
-        style={{
-          padding: '20px',
-          backgroundColor: '#16213e',
-          borderRadius: '8px',
-          border: '1px solid #0f3460',
-          marginBottom: '20px',
-        }}
-      >
-        <h3 style={{ marginBottom: '15px', color: '#aaa' }}>Application Mode</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-          <button
-            onClick={() => setPendingMode('server')}
+          {/* General Settings */}
+          <div
             style={{
               padding: '20px',
-              backgroundColor: pendingMode === 'server' ? '#e94560' : '#0f3460',
-              border: pendingMode === 'server' ? '2px solid #e94560' : '2px solid transparent',
+              backgroundColor: '#16213e',
               borderRadius: '8px',
-              cursor: 'pointer',
-              color: '#eee',
-              fontSize: '1rem',
+              border: '1px solid #0f3460',
+              marginBottom: '20px',
             }}
           >
-            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🖥️</div>
-            <strong>Server</strong>
-            <div style={{ fontSize: '0.85rem', marginTop: '8px', color: '#aaa' }}>
-              Expose APIs for remote control
+            <h3 style={{ marginBottom: '15px', color: '#aaa' }}>General Settings</h3>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#aaa' }}>
+                Mode
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setPendingMode('server')}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    backgroundColor: pendingMode === 'server' ? '#e94560' : '#0f3460',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#eee',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                  }}
+                >
+                  🖥️ Server
+                </button>
+                <button
+                  onClick={() => setPendingMode('client')}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    backgroundColor: pendingMode === 'client' ? '#e94560' : '#0f3460',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#eee',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                  }}
+                >
+                  📱 Client
+                </button>
+              </div>
             </div>
-          </button>
 
-          <button
-            onClick={() => setPendingMode('client')}
-            style={{
-              padding: '20px',
-              backgroundColor: pendingMode === 'client' ? '#e94560' : '#0f3460',
-              border: pendingMode === 'client' ? '2px solid #e94560' : '2px solid transparent',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              color: '#eee',
-              fontSize: '1rem',
-            }}
-          >
-            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📱</div>
-            <strong>Client</strong>
-            <div style={{ fontSize: '0.85rem', marginTop: '8px', color: '#aaa' }}>
-              Control remote APIs
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#aaa' }}>
+                Server Port
+              </label>
+              <input
+                type="number"
+                value={port}
+                onChange={(e) => setPort(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: '#0f3460',
+                  border: '1px solid #1a1a2e',
+                  borderRadius: '6px',
+                  color: '#eee',
+                  fontSize: '1rem',
+                }}
+              />
             </div>
-          </button>
-        </div>
-      </div>
 
-      {/* Server Configuration */}
-      {pendingMode === 'server' && (
-        <div
-          style={{
-            padding: '20px',
-            backgroundColor: '#16213e',
-            borderRadius: '8px',
-            border: '1px solid #0f3460',
-            marginBottom: '20px',
-          }}
-        >
-          <h3 style={{ marginBottom: '15px', color: '#aaa' }}>Server Configuration</h3>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>
-              Server Port
-            </label>
-            <input
-              type="number"
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#0f3460',
-                border: '1px solid #1a1a2e',
-                borderRadius: '6px',
-                color: '#eee',
-                fontSize: '1rem',
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Import/Export */}
-      <div
-        style={{
-          padding: '20px',
-          backgroundColor: '#16213e',
-          borderRadius: '8px',
-          border: '1px solid #0f3460',
-          marginBottom: '20px',
-        }}
-      >
-        <h3 style={{ marginBottom: '15px', color: '#aaa' }}>Configuration</h3>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={handleExport}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#0f3460',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#eee',
-              cursor: 'pointer',
-            }}
-          >
-            Export Config
-          </button>
-          <button
-            onClick={() => setShowImport(!showImport)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#0f3460',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#eee',
-              cursor: 'pointer',
-            }}
-          >
-            Import Config
-          </button>
-        </div>
-
-        {showExport && (
-          <div style={{ marginTop: '15px' }}>
-            <textarea
-              value={exportData}
-              readOnly
-              style={{
-                width: '100%',
-                height: '200px',
-                fontFamily: 'monospace',
-                backgroundColor: '#0f3460',
-                border: '1px solid #1a1a2e',
-                borderRadius: '6px',
-                color: '#eee',
-                padding: '10px',
-                resize: 'vertical',
-              }}
-            />
             <button
-              onClick={copyToClipboard}
+              onClick={handleSave}
               style={{
-                marginTop: '10px',
-                padding: '8px 16px',
+                width: '100%',
+                padding: '15px',
                 backgroundColor: '#e94560',
                 border: 'none',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 color: '#eee',
+                fontSize: '1.1rem',
                 cursor: 'pointer',
               }}
             >
-              Copy to Clipboard
+              Save Settings
             </button>
           </div>
-        )}
 
-        {showImport && (
-          <div style={{ marginTop: '15px' }}>
-            <textarea
-              value={importData}
-              onChange={(e) => setImportData(e.target.value)}
-              placeholder='Paste configuration JSON here...'
-              style={{
-                width: '100%',
-                height: '200px',
-                fontFamily: 'monospace',
-                backgroundColor: '#0f3460',
-                border: '1px solid #1a1a2e',
-                borderRadius: '6px',
-                color: '#eee',
-                padding: '10px',
-                resize: 'vertical',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          {/* Configuration Export/Import */}
+          <div
+            style={{
+              padding: '20px',
+              backgroundColor: '#16213e',
+              borderRadius: '8px',
+              border: '1px solid #0f3460',
+            }}
+          >
+            <h3 style={{ marginBottom: '15px', color: '#aaa' }}>Configuration</h3>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
-                onClick={handleImport}
+                onClick={handleExport}
                 style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#e94560',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#eee',
-                  cursor: 'pointer',
-                }}
-              >
-                Import
-              </button>
-              <button
-                onClick={() => setShowImport(false)}
-                style={{
-                  padding: '8px 16px',
+                  padding: '10px 20px',
                   backgroundColor: '#0f3460',
                   border: 'none',
                   borderRadius: '6px',
@@ -367,80 +270,175 @@ function Settings() {
                   cursor: 'pointer',
                 }}
               >
-                Cancel
+                Export Config
+              </button>
+              <button
+                onClick={() => setShowImport(!showImport)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#0f3460',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#eee',
+                  cursor: 'pointer',
+                }}
+              >
+                Import Config
               </button>
             </div>
+
+            {showExport && (
+              <div style={{ marginTop: '15px' }}>
+                <textarea
+                  value={exportData}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    fontFamily: 'monospace',
+                    backgroundColor: '#0f3460',
+                    border: '1px solid #1a1a2e',
+                    borderRadius: '6px',
+                    color: '#eee',
+                    padding: '10px',
+                    resize: 'vertical',
+                  }}
+                />
+                <button
+                  onClick={copyToClipboard}
+                  style={{
+                    marginTop: '10px',
+                    padding: '8px 16px',
+                    backgroundColor: '#e94560',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#eee',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Copy to Clipboard
+                </button>
+              </div>
+            )}
+
+            {showImport && (
+              <div style={{ marginTop: '15px' }}>
+                <textarea
+                  value={importData}
+                  onChange={(e) => setImportData(e.target.value)}
+                  placeholder='Paste configuration JSON here...'
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    fontFamily: 'monospace',
+                    backgroundColor: '#0f3460',
+                    border: '1px solid #1a1a2e',
+                    borderRadius: '6px',
+                    color: '#eee',
+                    padding: '10px',
+                    resize: 'vertical',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button
+                    onClick={handleImport}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#e94560',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: '#eee',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Import
+                  </button>
+                  <button
+                    onClick={() => setShowImport(false)}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#0f3460',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: '#eee',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Save Button */}
-      <button
-        onClick={handleSave}
-        style={{
-          width: '100%',
-          padding: '15px',
-          backgroundColor: '#e94560',
-          border: 'none',
-          borderRadius: '8px',
-          color: '#eee',
-          fontSize: '1.1rem',
-          cursor: 'pointer',
-        }}
-      >
-        Save Settings
-      </button>
-      </>
-
-      {activeTab === 'lan' && (
-        <LanDiscovery />
-      )}
-
-      {/* Restart Dialog */}
-      {showRestartDialog && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#16213e',
-              padding: '30px',
-              borderRadius: '12px',
-              maxWidth: '400px',
-              textAlign: 'center',
-            }}
-          >
-            <h3 style={{ color: '#e94560', marginBottom: '15px' }}>Restart Required</h3>
-            <p style={{ color: '#aaa', marginBottom: '20px' }}>
-              Mode changes require a restart. Please restart the application manually.
-            </p>
-            <button
-              onClick={() => setShowRestartDialog(false)}
+          {/* Restart Dialog */}
+          {showRestartDialog && (
+            <div
               style={{
-                padding: '10px 30px',
-                backgroundColor: '#e94560',
-                border: 'none',
-                borderRadius: '6px',
-                color: '#eee',
-                cursor: 'pointer',
-                fontSize: '1rem',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
               }}
             >
-              Close
-            </button>
-          </div>
-        </div>
+              <div
+                style={{
+                  backgroundColor: '#16213e',
+                  padding: '30px',
+                  borderRadius: '12px',
+                  maxWidth: '400px',
+                  width: '100%',
+                  textAlign: 'center',
+                }}
+              >
+                <h3 style={{ color: '#e94560', marginTop: 0 }}>Restart Required</h3>
+                <p style={{ color: '#aaa', marginBottom: '20px' }}>
+                  Mode change requires restarting the application.
+                </p>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => {
+                      window.electronAPI.invoke('app:quit');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      backgroundColor: '#e94560',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: '#eee',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    Restart Now
+                  </button>
+                  <button
+                    onClick={() => setShowRestartDialog(false)}
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#0f3460',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: '#eee',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Later
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <LanDiscovery />
       )}
     </div>
   );

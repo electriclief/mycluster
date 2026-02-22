@@ -130,8 +130,18 @@ export const ipcHandlers = {
       computerName: string;
       isOnline: boolean;
       lastSeen: string;
+      services?: never;
     }): unknown => {
       return lanDiscovery.addComputer(computer);
+    });
+
+    ipcMain.handle('lan:addComputerWithAutoDetect', async (_event, computer: {
+      ipAddress: string;
+      computerName: string;
+      isOnline: boolean;
+      lastSeen: string;
+    }): Promise<unknown> => {
+      return lanDiscovery.addComputerWithAutoDetect(computer);
     });
 
     ipcMain.handle('lan:removeComputer', (_event, id: string): void => {
@@ -148,6 +158,41 @@ export const ipcHandlers = {
 
     ipcMain.handle('lan:ping', (_event, ip: string): Promise<boolean> => {
       return lanDiscovery.ping(ip);
+    });
+
+    // Service management handlers
+    ipcMain.handle('lan:addService', (_event, computerId: string, service: {
+      type: 'ollama' | 'custom';
+      name: string;
+      enabled: boolean;
+      port?: number;
+      baseUrl?: string;
+      config?: Record<string, unknown>;
+    }): unknown => {
+      return lanDiscovery.addService(computerId, service);
+    });
+
+    ipcMain.handle('lan:removeService', (_event, computerId: string, serviceId: string): void => {
+      lanDiscovery.removeService(computerId, serviceId);
+    });
+
+    ipcMain.handle('lan:updateService', (_event, computerId: string, serviceId: string, updates: {
+      name?: string;
+      enabled?: boolean;
+      port?: number;
+      baseUrl?: string;
+      config?: Record<string, unknown>;
+    }): void => {
+      lanDiscovery.updateService(computerId, serviceId, updates);
+    });
+
+    // Ollama detection handler
+    ipcMain.handle('lan:checkOllama', (_event, baseUrl: string): Promise<{
+      available: boolean;
+      models?: string[];
+      error?: string;
+    }> => {
+      return lanDiscovery.checkOllama(baseUrl);
     });
   },
 };
