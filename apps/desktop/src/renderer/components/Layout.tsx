@@ -37,6 +37,13 @@ function Layout() {
             Dashboard
           </a>
           <a
+            href="/jobs"
+            onClick={(e) => { e.preventDefault(); navigate('/jobs'); }}
+            style={{ color: '#eee', textDecoration: 'none', cursor: 'pointer' }}
+          >
+            Jobs
+          </a>
+          <a
             href="/settings"
             onClick={(e) => { e.preventDefault(); navigate('/settings'); }}
             style={{ color: '#eee', textDecoration: 'none', cursor: 'pointer' }}

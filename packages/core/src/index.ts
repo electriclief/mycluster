@@ -10,3 +10,7 @@ export { ping, scanIpRange, checkOllama, autoDetectServices, addComputerWithAuto
 
 // Storage
 export { MemoryStorage } from './storage-memory.js';
+
+// Job Queue
+export { JobQueue } from './job-queue.js';
+export type { JobQueueOptions, JobProgress, JobListener } from './job-queue.js';

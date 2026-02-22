@@ -61,10 +61,12 @@ mycluster/
 - [ ] Add transaction support (begin/commit/rollback)
 
 ### R1.5 Update Electron to Use Core
-- [ ] Install `@mycluster/core` as dependency
-- [ ] Replace direct imports with core API calls
-- [ ] Verify all LAN features still work
-- [ ] Remove duplicated logic from main process
+- [x] Install `@mycluster/core` as dependency
+- [x] Replace direct imports with core API calls
+- [x] Verify all LAN features still work
+- [x] Remove duplicated logic from main process
+
+**Phase R1 Complete!** ✅ Core package extracted and working.
 
 ---
 
@@ -94,23 +96,41 @@ interface Job {
 ```
 
 ### R2.2 Job Queue Implementation
-- [ ] Create `JobQueue` class in core
-- [ ] Implement enqueue/dequeue/cancel/status
-- [ ] Add job persistence (survives restart)
-- [ ] Job history and cleanup (old jobs)
+- [x] Create `JobQueue` class in core
+- [x] Implement enqueue/dequeue/cancel/status
+- [x] Add job persistence via StorageProvider
+- [x] Job history and cleanup (cleanupOldJobs method)
+- [x] Priority-based scheduling
+- [x] Retry logic with configurable maxRetries
+- [x] Timeout handling per job
+- [x] Progress listeners for real-time updates
 
 ### R2.3 Job Execution Engine
-- [ ] Worker pool for parallel execution
-- [ ] Timeout handling
-- [ ] Retry logic (configurable)
-- [ ] Progress reporting (stdout/stderr streaming)
+- [x] Worker pool with maxConcurrent config
+- [x] Timeout handling
+- [x] Retry logic (configurable)
+- [x] Progress reporting via listeners
+- [x] Simulated execution for testing
+- [ ] Integration with Agent for Python execution (Phase R3)
 
 ### R2.4 Job UI Components
-- [ ] Job queue dashboard
-- [ ] Create new job (script selection, target, args)
-- [ ] Job status list with filtering
-- [ ] Job detail view (logs, results, output files)
-- [ ] Cancel/retry controls
+- [x] Job queue dashboard with stats cards
+- [x] Submit job form (computer, script, priority)
+- [x] Job list with status filtering
+- [x] Job detail modal
+- [x] Cancel running/pending jobs
+- [x] Auto-refresh every 5 seconds
+- [x] Navigation link in Layout
+
+### R2.5 IPC Handlers
+- [x] job:enqueue - Add job to queue
+- [x] job:get - Get job by ID
+- [x] job:list - List jobs with optional status filter
+- [x] job:cancel - Cancel a job
+- [x] job:stats - Get queue statistics
+- [x] job:cleanup - Clean up old jobs
+
+**Phase R2 Complete!** ✅ Job queue system functional (simulated execution until Phase R3 Agent).
 
 ---
 

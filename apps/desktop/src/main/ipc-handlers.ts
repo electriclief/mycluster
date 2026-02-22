@@ -1,5 +1,5 @@
 import { ipcMain, app } from 'electron';
-import { Computer, Service, StorageProvider } from '@mycluster/core';
+import { Computer, Service, StorageProvider, JobQueue, Job, JobStatus } from '@mycluster/core';
 import { YamlStorage } from '@mycluster/storage-yaml';
 import { ping, scanIpRange, checkOllama, autoDetectServices, addComputerWithAutoDetect as coreAddComputerWithAutoDetect } from '@mycluster/core';
 import Store from 'electron-store';
@@ -32,9 +32,15 @@ function ensureInstanceIdentity(): void {
 
 ensureInstanceIdentity();
 
-// Initialize storage
+// Initialize storage and job queue
 const dataDir = app.getPath('userData');
 const storage: StorageProvider = new YamlStorage({ dataDir });
+const jobQueue = new JobQueue({ 
+  storage, 
+  maxConcurrent: 3, 
+  maxRetries: 3, 
+  jobTimeout: 300000 
+});
 
 export const ipcHandlers = {
   register(): void {
@@ -191,6 +197,38 @@ export const ipcHandlers = {
       error?: string;
     }> => {
       return checkOllama(baseUrl);
+    });
+
+    // Job Queue handlers
+    ipcMain.handle('job:enqueue', async (_event, job: Omit<Job, 'id' | 'status' | 'createdAt'>): Promise<Job> => {
+      return jobQueue.enqueue(job);
+    });
+
+    ipcMain.handle('job:get', async (_event, id: string): Promise<Job | undefined> => {
+      return jobQueue.getJob(id);
+    });
+
+    ipcMain.handle('job:list', async (_event, status?: JobStatus): Promise<Job[]> => {
+      return jobQueue.getJobs(status);
+    });
+
+    ipcMain.handle('job:cancel', async (_event, id: string): Promise<void> => {
+      return jobQueue.cancel(id);
+    });
+
+    ipcMain.handle('job:stats', async (): Promise<{
+      total: number;
+      pending: number;
+      running: number;
+      complete: number;
+      failed: number;
+      cancelled: number;
+    }> => {
+      return jobQueue.getStats();
+    });
+
+    ipcMain.handle('job:cleanup', async (_event, maxAgeHours?: number): Promise<number> => {
+      return jobQueue.cleanupOldJobs(maxAgeHours);
     });
   },
 };

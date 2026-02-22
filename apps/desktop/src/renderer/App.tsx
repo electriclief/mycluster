@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import SetupWizard from './components/SetupWizard';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
+import JobQueue from './components/JobQueue';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="setup" element={<SetupWizard />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="jobs" element={<JobQueue />} />
         </Route>
       </Routes>
     </BrowserRouter>
