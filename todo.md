@@ -471,3 +471,28 @@ Complete documentation is available in the [`Docs/`](./Docs/) folder:
 - **[SECURITY.md](./Docs/SECURITY.md)** - Authentication & audit logging (NEW!)
 - **[API_REFERENCE.md](./Docs/API_REFERENCE.md)** - API documentation
 - **[JOB_QUEUE.md](./Docs/JOB_QUEUE.md)** - Job queue guide
+
+---
+
+## 🎯 Next Release: v0.0.2 - Multi-Platform
+
+**Target:** Build for Windows, Linux, and macOS
+
+### Release Goals
+- [ ] Windows installer (NSIS) - x64
+- [ ] Windows portable - x64
+- [ ] Linux AppImage - x64
+- [ ] Linux deb package - x64
+- [ ] macOS DMG - x64/arm64
+- [ ] Cross-platform agent binaries
+- [ ] Release notes for v0.0.2 features
+- [ ] GitHub release with all artifacts
+
+### New Features in v0.0.2
+- File storage & results management
+- Service plugin architecture
+- Automatic API key authentication
+- Comprehensive audit logging
+- Results Viewer GUI
+
+---
