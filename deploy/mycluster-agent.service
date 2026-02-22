@@ -1,0 +1,34 @@
+[Unit]
+Description=MyCluster Agent - Remote Job Executor
+Documentation=https://electriclief.github.io/mycluster/
+After=network.target
+
+[Service]
+Type=exec
+User=mycluster
+Group=mycluster
+WorkingDirectory=/opt/mycluster
+Environment=NODE_ENV=production
+Environment=SERVER_URL=http://localhost:3000
+Environment=WORKSPACE_DIR=/var/lib/mycluster/agent
+Environment=PYTHON_PATH=/usr/bin/python3
+ExecStart=/usr/bin/node /opt/mycluster/packages/agent/dist/cli.js \
+  --server ${SERVER_URL} \
+  --workspace /var/lib/mycluster/agent \
+  --python /usr/bin/python3 \
+  --concurrent 2
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mycluster-agent
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=/var/lib/mycluster
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,61 @@
+# Multi-stage Dockerfile for MyCluster Agent
+# Usage:
+#   docker build -f Dockerfile.agent -t mycluster/agent:latest .
+#   docker run -p 3001:3001 -v mycluster-workspace:/workspace mycluster/agent:latest
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files
+COPY package.json package-lock.json pnpm-lock.yaml* ./
+COPY packages/agent/package.json packages/agent/
+
+# Install dependencies
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod
+
+# Copy source code
+COPY packages/agent packages/agent
+
+# Build agent
+RUN pnpm build -w @mycluster/agent
+
+# Production image
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install Python and dumb-init
+RUN apk add --no-cache python3 dumb-init
+
+# Create non-root user
+RUN addgroup -g 1001 -S mycluster && \
+    adduser -S mycluster -u 1001 -G mycluster
+
+# Copy built packages from builder
+COPY --from=builder --chown=mycluster:mycluster /app/packages/agent/dist /app/packages/agent/dist
+COPY --from=builder --chown=mycluster:mycluster /app/packages/agent/runner.py /app/packages/agent/runner.py
+COPY --from=builder --chown=mycluster:mycluster /app/node_modules /app/node_modules
+COPY --from=builder --chown=mycluster:mycluster /app/packages/agent/node_modules /app/packages/agent/node_modules
+
+# Copy package files
+COPY --from=builder --chown=mycluster:mycluster /app/packages/agent/package.json /app/packages/agent/package.json
+
+# Create workspace directory
+RUN mkdir -p /workspace && chown -R mycluster:mycluster /workspace
+
+USER mycluster
+
+# Expose port for local API (optional)
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "console.log('Agent running')"
+
+# Start agent
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "packages/agent/dist/cli.js", "--server", "http://host.docker.internal:3000", "--workspace", "/workspace"]
