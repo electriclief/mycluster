@@ -4,129 +4,49 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MyCluster Documentation</title>
-  <link rel="stylesheet" href="index.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: #0f0f14;
+      color: #fff;
+    }
+    h1 { color: #e94560; margin-bottom: 10px; }
+    h2 { color: #e94560; margin: 30px 0 15px; border-bottom: 1px solid #2a2a3a; padding-bottom: 10px; }
+    h3 { margin: 25px 0 10px; }
+    a { color: #2196f3; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: #1a1a2e; padding: 2px 6px; border-radius: 3px; font-family: 'Fira Code', monospace; }
+    pre { background: #1a1a2e; padding: 20px; border-radius: 6px; overflow-x: auto; margin: 15px 0; }
+    pre code { background: none; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #2a2a3a; padding: 12px; text-align: left; }
+    th { background: #16161e; }
+    ul, ol { margin: 10px 0 10px 25px; }
+    li { margin: 8px 0; }
+    .tag { display: inline-block; background: #e94560; color: #fff; padding: 2px 8px; border-radius: 3px; font-size: 0.85rem; margin-left: 10px; }
+    .warning { background: #2a1a1a; border-left: 3px solid #ff9800; padding: 15px; margin: 20px 0; }
+    .success { background: #1a2a1a; border-left: 3px solid #4caf50; padding: 15px; margin: 20px 0; }
+  </style>
 </head>
 <body>
-  <div class="app">
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-      <div class="logo">
-        <div class="logo-icon">🚀</div>
-        <div class="logo-text">
-          <h1>MyCluster</h1>
-          <span class="version">v0.1.0</span>
-        </div>
-      </div>
-
-      <nav class="nav-menu">
-        <div class="nav-section">
-          <span class="nav-section-title">Getting Started</span>
-          <a href="#" class="nav-item active" data-file="COMPLETE_GUIDE.md">
-            <span class="nav-icon">📖</span>
-            <span>Complete Guide</span>
-          </a>
-          <a href="#" class="nav-item" data-file="QUICK_COMMANDS.md">
-            <span class="nav-icon">⚡</span>
-            <span>Quick Commands</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <span class="nav-section-title">Documentation</span>
-          <a href="#" class="nav-item" data-file="ARCHITECTURE.md">
-            <span class="nav-icon">🏗️</span>
-            <span>Architecture</span>
-          </a>
-          <a href="#" class="nav-item" data-file="PACKAGES.md">
-            <span class="nav-icon">📦</span>
-            <span>Packages</span>
-          </a>
-          <a href="#" class="nav-item" data-file="AGENT_GUIDE.md">
-            <span class="nav-icon">🤖</span>
-            <span>Agent Guide</span>
-          </a>
-          <a href="#" class="nav-item" data-file="API_REFERENCE.md">
-            <span class="nav-icon">🔌</span>
-            <span>API Reference</span>
-          </a>
-          <a href="#" class="nav-item" data-file="JOB_QUEUE.md">
-            <span class="nav-icon">📝</span>
-            <span>Job Queue</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <span class="nav-section-title">Resources</span>
-          <a href="https://github.com" target="_blank" class="nav-item external">
-            <span class="nav-icon">🐙</span>
-            <span>GitHub</span>
-          </a>
-          <a href="#" class="nav-item" data-file="README.md">
-            <span class="nav-icon">📋</span>
-            <span>Index</span>
-          </a>
-        </div>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="status-badge">
-          <span class="status-dot"></span>
-          <span>Production Ready</span>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Header -->
-      <header class="content-header">
-        <div class="breadcrumb">
-          <span>Docs</span>
-          <span class="breadcrumb-separator">/</span>
-          <span id="current-file">Complete Guide</span>
-        </div>
-        <div class="header-actions">
-          <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
-            <span class="theme-icon">🌙</span>
-          </button>
-          <a href="https://github.com" target="_blank" class="github-link">
-            <span>⭐ Star on GitHub</span>
-          </a>
-        </div>
-      </header>
-
-      <!-- Content -->
-      <article class="content" id="content">
-        <div class="loading">
-          <div class="loading-spinner"></div>
-          <p>Loading documentation...</p>
-        </div>
-      </article>
-
-      <!-- Footer -->
-      <footer class="content-footer">
-        <div class="footer-text">
-          <p>MyCluster Documentation v0.1.0</p>
-          <p>Built with ❤️ for distributed computing</p>
-        </div>
-      </footer>
-    </main>
-
-    <!-- Table of Contents (Right Sidebar) -->
-    <aside class="toc-sidebar">
-      <div class="toc-header">
-        <h3>On this page</h3>
-      </div>
-      <nav class="toc-nav" id="toc-nav">
-        <!-- Populated dynamically -->
-      </nav>
-    </aside>
-  </div>
-
+  <div id="content"></div>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="index.js"></script>
+  <script>
+    fetch('README.md')
+      .then(r => r.text())
+      .then(md => {
+        document.getElementById('content').innerHTML = marked.parse(md);
+        // Open all external links in new tab
+        document.querySelectorAll('a[href^="http"]').forEach(a => {
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        });
+      });
+  </script>
 </body>
 </html>
