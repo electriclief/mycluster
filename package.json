@@ -37,6 +37,7 @@
   "dependencies": {
     "@types/cors": "^2.8.19",
     "axios": "^1.7.9",
+    "cors": "^2.8.6",
     "electron-store": "^11.0.2",
     "express": "^4.21.2",
     "react": "^19.0.0",
