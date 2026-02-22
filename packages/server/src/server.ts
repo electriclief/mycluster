@@ -10,7 +10,12 @@ import cors from 'cors';
 import { createServer, Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { JobQueue, StorageProvider, Computer, Service, Job } from '@mycluster/core';
-import { AgentAPI } from './agent-api.js';
+import { AgentAPI, JobResult } from './agent-api.js';
+import { FileStorage } from './file-storage.js';
+import { AuthManager } from './auth.js';
+import { AuditLogger } from './audit-log.js';
+import * as path from 'path';
+import * as os from 'os';
 
 export interface ServerOptions {
   port: number;
@@ -18,6 +23,20 @@ export interface ServerOptions {
   storage: StorageProvider;
   corsOrigins?: string[];
   authToken?: string;
+  dataDir?: string;
+  fileStorage?: {
+    enabled: boolean;
+    resultsDir?: string;
+    maxAgeDays?: number;
+    maxSizeMB?: number;
+  };
+  security?: {
+    enabled?: boolean;
+    autoGenerateKeys?: boolean;
+    keyExpirationDays?: number;
+    auditLogEnabled?: boolean;
+    auditLogLevel?: 'all' | 'errors' | 'admin';
+  };
 }
 
 export interface ServerStats {
@@ -49,6 +68,9 @@ export class MyClusterServer {
   private options: ServerOptions;
   private jobQueue: JobQueue;
   private agentAPI: AgentAPI;
+  private fileStorage: FileStorage | null = null;
+  private authManager: AuthManager | null = null;
+  private auditLogger: AuditLogger | null = null;
   private startTime: Date | null = null;
   private requestCount = 0;
   private wsConnections: Set<WebSocket> = new Set();
@@ -61,13 +83,49 @@ export class MyClusterServer {
       ...options,
     };
     this.authToken = options.authToken;
+
+    // Initialize security features
+    const securityEnabled = options.security?.enabled !== false; // Default enabled
+    
+    if (securityEnabled && options.dataDir) {
+      this.authManager = new AuthManager({
+        dataDir: options.dataDir,
+        enabled: securityEnabled,
+        autoGenerateKeys: options.security?.autoGenerateKeys !== false,
+        keyExpirationDays: options.security?.keyExpirationDays || 365,
+      });
+
+      this.auditLogger = new AuditLogger({
+        logDir: path.join(options.dataDir, 'logs'),
+        enabled: options.security?.auditLogEnabled !== false,
+        maxAgeDays: 30,
+        logLevel: options.security?.auditLogLevel || 'all',
+      });
+    }
+    
+    // Initialize file storage if enabled
+    if (options.fileStorage?.enabled) {
+      const resultsDir = options.fileStorage.resultsDir || 
+        path.join(options.dataDir || os.tmpdir(), 'results');
+      
+      this.fileStorage = new FileStorage({
+        resultsDir,
+        cleanupPolicy: {
+          maxAgeDays: options.fileStorage.maxAgeDays || 7,
+          maxSizeMB: options.fileStorage.maxSizeMB || 1000,
+          enabled: true,
+        },
+      });
+      console.log(`📁 File storage enabled: ${resultsDir}`);
+    }
+    
     this.jobQueue = new JobQueue({
       storage: options.storage,
       maxConcurrent: 5,
       maxRetries: 3,
       jobTimeout: 300000,
     });
-    this.agentAPI = new AgentAPI();
+    this.agentAPI = new AgentAPI({ fileStorage: this.fileStorage || undefined });
 
     // Setup job progress notifications
     this.jobQueue.onProgress((progress) => {
@@ -84,6 +142,12 @@ export class MyClusterServer {
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.app = express();
+      
+      // Initialize auth manager if enabled
+      if (this.authManager) {
+        this.authManager.initialize().catch(console.error);
+      }
+      
       this.setupMiddleware();
       this.setupRoutes();
       this.setupWebSocket();
@@ -99,6 +163,17 @@ export class MyClusterServer {
         console.log(`🚀 MyCluster Server started on http://${host}:${port}`);
         console.log(`   WebSocket: ws://${host}:${port}/ws`);
         console.log(`   API: http://${host}:${port}/api`);
+        
+        // Print security info
+        if (this.authManager) {
+          const serverKey = this.authManager.getServerKey();
+          if (serverKey) {
+            console.log(`\n🔐 Security enabled`);
+            console.log(`   Server API Key: ${serverKey}`);
+            console.log(`   (Save this key for agent authentication)`);
+          }
+        }
+        console.log('');
         resolve();
       });
 
@@ -119,6 +194,12 @@ export class MyClusterServer {
           this.server = null;
           this.startTime = null;
           this.wsServer?.close();
+          
+          // Stop audit logger
+          if (this.auditLogger) {
+            this.auditLogger.stop();
+          }
+          
           console.log('🛑 Server stopped');
           resolve();
         });
@@ -138,8 +219,13 @@ export class MyClusterServer {
     this.app.use(cors({
       origin: this.options.corsOrigins || '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Instance-ID', 'X-Auth-Token'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Instance-ID', 'X-Auth-Token', 'X-API-Key'],
     }));
+
+    // Audit logging middleware (if enabled)
+    if (this.auditLogger) {
+      this.app.use(this.auditLogger.middleware());
+    }
 
     // Request logging
     this.app.use((req: Request, res: Response, next) => {
@@ -156,15 +242,33 @@ export class MyClusterServer {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.text({ limit: '10mb' }));
 
-    // Auth middleware
+    // API Key authentication middleware (automatic)
     this.app.use((req: Request, res: Response, next) => {
-      if (req.path === '/api/health' || req.path.startsWith('/api/agent')) {
+      // Skip auth for health check and WebSocket
+      if (req.path === '/api/health' || req.path === '/ws') {
         return next();
       }
 
-      const authToken = req.headers['x-auth-token'] as string;
-      if (this.authToken && authToken && authToken !== this.authToken) {
-        return res.status(401).json({ error: 'Invalid authentication token' });
+      // Support multiple auth header formats
+      const apiKey = req.headers['x-api-key'] as string | undefined;
+      const authToken = req.headers['x-auth-token'] as string | undefined;
+      const authHeader = req.headers['authorization'] as string | undefined;
+      
+      const credentials = apiKey || authToken || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined);
+
+      // If auth manager is enabled and credentials are provided, validate them
+      if (this.authManager && credentials) {
+        const result = this.authManager.validateApiKey(credentials);
+        
+        if (!result.valid) {
+          return res.status(401).json({ 
+            error: 'Authentication failed',
+            reason: result.error 
+          });
+        }
+        
+        // Attach validated key info to request for audit logging
+        (req as any).apiKey = result.apiKey;
       }
 
       next();
@@ -251,6 +355,121 @@ export class MyClusterServer {
     this.app.get('/api/jobs/stats', async (req, res) => {
       const stats = await this.jobQueue.getStats();
       res.json(stats);
+    });
+
+    // Results API (file downloads)
+    this.app.get('/api/results/:jobId', async (req, res) => {
+      if (!this.fileStorage) {
+        return res.status(503).json({ error: 'File storage not configured' });
+      }
+      try {
+        const files = await this.fileStorage.listFiles(req.params.jobId);
+        res.json({ success: true, files });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to list files' });
+      }
+    });
+
+    this.app.get('/api/results/:jobId/:filename', async (req, res) => {
+      if (!this.fileStorage) {
+        return res.status(503).json({ error: 'File storage not configured' });
+      }
+      try {
+        const { buffer, fileInfo } = await this.fileStorage.getFile(
+          req.params.jobId,
+          req.params.filename
+        );
+        
+        const mimeType = FileStorage.getMimeType(req.params.filename);
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Disposition', `inline; filename="${req.params.filename}"`);
+        res.setHeader('Content-Length', fileInfo.size.toString());
+        res.send(buffer);
+      } catch (error) {
+        res.status(404).json({ error: 'File not found' });
+      }
+    });
+
+    this.app.get('/api/results/:jobId/:filename/download', async (req, res) => {
+      if (!this.fileStorage) {
+        return res.status(503).json({ error: 'File storage not configured' });
+      }
+      try {
+        const { buffer, fileInfo } = await this.fileStorage.getFile(
+          req.params.jobId,
+          req.params.filename
+        );
+        
+        const mimeType = FileStorage.getMimeType(req.params.filename);
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Disposition', `attachment; filename="${req.params.filename}"`);
+        res.setHeader('Content-Length', fileInfo.size.toString());
+        res.send(buffer);
+      } catch (error) {
+        res.status(404).json({ error: 'File not found' });
+      }
+    });
+
+    this.app.delete('/api/results/:jobId', async (req, res) => {
+      if (!this.fileStorage) {
+        return res.status(503).json({ error: 'File storage not configured' });
+      }
+      try {
+        await this.fileStorage.deleteJobFiles(req.params.jobId);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to delete files' });
+      }
+    });
+
+    this.app.get('/api/results/stats', async (req, res) => {
+      if (!this.fileStorage) {
+        return res.status(503).json({ error: 'File storage not configured' });
+      }
+      try {
+        const storageUsed = await this.fileStorage.getStorageUsed();
+        res.json({ success: true, ...storageUsed });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to get storage stats' });
+      }
+    });
+
+    // Security API routes
+    this.app.get('/api/security/keys', async (req, res) => {
+      if (!this.authManager) {
+        return res.status(503).json({ error: 'Authentication not configured' });
+      }
+      const keys = this.authManager.getAllKeys();
+      res.json({ success: true, keys });
+    });
+
+    this.app.post('/api/security/keys/agent', async (req, res) => {
+      if (!this.authManager) {
+        return res.status(503).json({ error: 'Authentication not configured' });
+      }
+      const { agentId } = req.body;
+      if (!agentId) {
+        return res.status(400).json({ error: 'agentId required' });
+      }
+      const key = await this.authManager.generateAgentKey(agentId);
+      res.json({ success: true, key, agentId });
+    });
+
+    this.app.get('/api/security/audit-logs', async (req, res) => {
+      if (!this.auditLogger) {
+        return res.status(503).json({ error: 'Audit logging not configured' });
+      }
+      const limit = parseInt(req.query.limit as string) || 100;
+      const logs = await this.auditLogger.getRecentLogs(limit);
+      res.json({ success: true, logs });
+    });
+
+    this.app.get('/api/security/audit-stats', async (req, res) => {
+      if (!this.auditLogger) {
+        return res.status(503).json({ error: 'Audit logging not configured' });
+      }
+      const stats = await this.auditLogger.getStats();
+      res.json({ success: true, stats });
     });
 
     // Mount Agent API

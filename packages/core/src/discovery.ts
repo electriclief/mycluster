@@ -3,6 +3,16 @@
  */
 import { spawn } from 'child_process';
 import { Computer, ScanResult, OllamaResult, Service } from './types.js';
+import { ollamaPlugin } from './plugins/ollama-plugin.js';
+import { ServicePluginRegistry } from './service-plugin.js';
+
+/**
+ * Default plugin registry with built-in plugins
+ */
+export const defaultServiceRegistry = new ServicePluginRegistry();
+
+// Register built-in plugins
+defaultServiceRegistry.register(ollamaPlugin);
 
 /**
  * Ping an IP address
@@ -93,11 +103,14 @@ export async function checkOllama(baseUrl: string, timeout = 2000): Promise<Olla
 }
 
 /**
- * Auto-detect services on a computer
+ * Auto-detect services on a computer using plugins
  */
-export async function autoDetectServices(ipAddress: string): Promise<
+export async function autoDetectServices(
+  ipAddress: string,
+  registry: ServicePluginRegistry = defaultServiceRegistry
+): Promise<
   Array<{
-    type: 'ollama';
+    type: string;
     port: number;
     baseUrl: string;
     models?: string[];
@@ -105,24 +118,30 @@ export async function autoDetectServices(ipAddress: string): Promise<
   }>
 > {
   const detected: Array<{
-    type: 'ollama';
+    type: string;
     port: number;
     baseUrl: string;
     models?: string[];
     status: 'online' | 'offline';
   }> = [];
 
-  const ollamaBaseUrl = `http://${ipAddress}:11434`;
-  const ollamaResult = await checkOllama(ollamaBaseUrl, 1500);
+  // Use all registered plugins to detect services
+  const plugins = registry.getAll();
 
-  if (ollamaResult.available) {
-    detected.push({
-      type: 'ollama',
-      port: 11434,
-      baseUrl: ollamaBaseUrl,
-      models: ollamaResult.models,
-      status: 'online',
-    });
+  for (const plugin of plugins) {
+    for (const port of plugin.defaultPorts) {
+      const result = await plugin.detect(ipAddress, port);
+
+      if (result.detected && result.service) {
+        detected.push({
+          type: result.service.type as string,
+          port: result.service.port || port,
+          baseUrl: result.service.baseUrl || `http://${ipAddress}:${port}`,
+          models: (result.service.config?.models as string[]) || undefined,
+          status: result.service.status as 'online' | 'offline',
+        });
+      }
+    }
   }
 
   return detected;
@@ -133,11 +152,12 @@ export async function autoDetectServices(ipAddress: string): Promise<
  */
 export async function addComputerWithAutoDetect(
   computer: Omit<Computer, 'id' | 'addedDate' | 'services'>,
-  storage: { saveComputer: (c: Computer) => Promise<void> }
+  storage: { saveComputer: (c: Computer) => Promise<void> },
+  registry?: ServicePluginRegistry
 ): Promise<{
   computer: Computer;
   detectedServices: Array<{
-    type: 'ollama';
+    type: string;
     port: number;
     baseUrl: string;
     models?: string[];
@@ -151,13 +171,13 @@ export async function addComputerWithAutoDetect(
     services: [],
   };
 
-  const detectedServices = await autoDetectServices(computer.ipAddress);
+  const detectedServices = await autoDetectServices(computer.ipAddress, registry);
 
   for (const service of detectedServices) {
     newComputer.services?.push({
       id: `service_${Date.now()}_${service.type}`,
       type: service.type,
-      name: service.type === 'ollama' ? 'Ollama API' : 'Unknown Service',
+      name: `${service.type.charAt(0).toUpperCase() + service.type.slice(1)} API`,
       enabled: true,
       port: service.port,
       baseUrl: service.baseUrl,

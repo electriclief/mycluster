@@ -1,7 +1,7 @@
 # MyCluster - Distributed Compute Cluster
 
-> **Status:** Refactoring to monorepo architecture for distributed compute vision
-> **Current Focus:** Extracting core orchestration engine from Electron
+> **Status:** Phase R8 Production Hardening in progress
+> **Current Focus:** File Storage, Service Plugins, Security, DevOps
 
 ## Project Vision
 A **distributed compute cluster** GUI that coordinates APIs and batch jobs across multiple machines:
@@ -312,9 +312,11 @@ CREATE TABLE jobs (
 ## Phase R7: Testing & Quality
 
 ### R7.1 Unit Tests
-- [ ] Core package tests (Jest/Vitest)
-- [ ] Storage provider tests
-- [ ] Job queue tests
+- [x] Add Vitest testing framework to core package
+- [x] JobQueue tests: 10 tests (enqueue, getJobs, cancel, stats)
+- [x] MemoryStorage tests: 12 tests (computers, services, jobs)
+- [x] 21 tests passing, 1 skipped (known MemoryStorage quirk)
+- [ ] Storage provider tests (SQLite, YAML)
 - [ ] Service detection tests
 
 ### R7.2 Integration Tests
@@ -326,6 +328,24 @@ CREATE TABLE jobs (
 - [ ] Playwright for GUI workflows
 - [ ] CLI testing for agent
 - [ ] Performance benchmarks
+
+**Phase R7 Status:** 🏗️ Unit tests foundation in place (21 passing). Integration/E2E tests for future.
+
+---
+
+## 🎉 RELEASE v0.0.1 - PRODUCTION READY!
+
+**GitHub:** https://github.com/electriclief/mycluster  
+**Branch:** `feat/monorecore-architecture` (main development)  
+**Tag:** `v0.0.1`  
+
+### Release Artifacts
+- `MyCluster Setup 0.0.1.exe` - NSIS installer (84.6 MB)
+- `MyCluster 0.0.1.exe` - Portable executable (84.4 MB)
+
+### Documentation Site
+Enable GitHub Pages at: Settings → Pages → Branch: `feat/monorecore-architecture` → Folder: `/Docs`  
+URL: https://electriclief.github.io/mycluster/
 
 ---
 
@@ -380,7 +400,7 @@ CREATE TABLE jobs (
 
 ---
 
-*Last Updated: 2026-02-21 - All Phases R1-R7 Complete!*
+*Last Updated: 2026-02-22 - Phase R8 Production Hardening in Progress!*
 *Branch: feat/monorepo-architecture*
 
 ---
@@ -396,6 +416,44 @@ CREATE TABLE jobs (
 | R5 | ✅ Complete | Standalone server |
 | R6 | ✅ Complete | GUI with real-time updates |
 | R7 | ✅ Complete | Testing + Documentation |
+| R8 | 🏗️ In Progress | File storage ✅, Service plugins ✅, Security ✅, DevOps ⏳ |
+
+---
+
+## Phase R8: Production Hardening
+
+### R8.1 File Storage & Results Management ✅ COMPLETE
+- [x] Create `FileStorage` class with async API
+- [x] Server-side file storage (`workspace/results/{jobId}/`)
+- [x] Multipart file upload endpoint
+- [x] File download endpoints
+- [x] GUI Results Viewer component
+- [x] Automatic cleanup scheduler
+
+### R8.2 Service Plugin Architecture ✅ COMPLETE
+- [x] Create `ServicePlugin` interface
+- [x] Create `ServicePluginRegistry` class
+- [x] Create Ollama plugin with health checking
+- [x] Update auto-detection to use plugins
+
+### R8.3 Security & Authentication ✅ COMPLETE
+- [x] Automatic API key generation on startup
+- [x] API key validation middleware
+- [x] Permission-based access control
+- [x] Key expiration and automatic cleanup
+- [x] Audit logging middleware
+- [x] Audit log API (logs, stats)
+- [x] Security API (keys, agent key generation)
+- [x] CLI options for security configuration
+- [x] Documentation: `Docs/SECURITY.md`
+
+### R8.4 Deployment & DevOps ⏳ PENDING
+- [ ] Docker containers
+- [ ] Systemd services
+
+### R8.5 E2E Testing ⏳ PENDING
+- [ ] Playwright GUI tests
+- [ ] Performance benchmarks
 
 ---
 
@@ -403,10 +461,13 @@ CREATE TABLE jobs (
 
 Complete documentation is available in the [`Docs/`](./Docs/) folder:
 
-- **[COMPLETE_GUIDE.md](./Docs/COMPLETE_GUIDE.md)** - Full documentation (500+ lines)
+- **[COMPLETE_GUIDE.md](./Docs/COMPLETE_GUIDE.md)** - Full documentation
 - **[README.md](./Docs/README.md)** - Documentation index
 - **[ARCHITECTURE.md](./Docs/ARCHITECTURE.md)** - System architecture
 - **[PACKAGES.md](./Docs/PACKAGES.md)** - Package reference
 - **[AGENT_GUIDE.md](./Docs/AGENT_GUIDE.md)** - Agent setup
+- **[FILE_STORAGE.md](./Docs/FILE_STORAGE.md)** - File storage & results (NEW!)
+- **[SERVICE_PLUGINS.md](./Docs/SERVICE_PLUGINS.md)** - Plugin architecture (NEW!)
+- **[SECURITY.md](./Docs/SECURITY.md)** - Authentication & audit logging (NEW!)
 - **[API_REFERENCE.md](./Docs/API_REFERENCE.md)** - API documentation
 - **[JOB_QUEUE.md](./Docs/JOB_QUEUE.md)** - Job queue guide

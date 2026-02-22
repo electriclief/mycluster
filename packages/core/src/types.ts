@@ -28,7 +28,7 @@ export interface Service {
   models?: string[];
 }
 
-export type ServiceType = 'ollama' | 'custom';
+export type ServiceType = 'ollama' | 'comfyui' | 'stable-diffusion' | 'custom' | string;
 
 // Job for batch processing
 export interface Job {

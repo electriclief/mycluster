@@ -4,6 +4,9 @@
  */
 
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import * as path from 'path';
+import { FileStorage } from './file-storage.js';
 
 interface AgentInfo {
   agentId: string;
@@ -17,7 +20,7 @@ interface AgentInfo {
   status: 'online' | 'offline';
 }
 
-interface Job {
+export interface Job {
   id: string;
   script: string;
   targetComputerId: string;
@@ -26,7 +29,7 @@ interface Job {
   timeout?: number;
 }
 
-interface JobResult {
+export interface JobResult {
   stdout: string;
   stderr: string;
   exitCode: number;
@@ -41,14 +44,21 @@ interface JobResult {
   error?: string;
 }
 
+export interface AgentAPIOptions {
+  fileStorage?: FileStorage;
+}
+
 export class AgentAPI {
   private router: Router;
   private agents: Map<string, AgentInfo> = new Map();
   private jobQueue: Array<Job & { status: 'pending' | 'assigned' | 'completed' }> = [];
   private jobResults: Map<string, { result: JobResult; completedAt: string }> = new Map();
+  private fileStorage: FileStorage | null = null;
+  private upload: ReturnType<typeof multer> | null = null;
 
-  constructor() {
+  constructor(options?: AgentAPIOptions) {
     this.router = Router();
+    this.fileStorage = options?.fileStorage || null;
     this.setupRoutes();
   }
 
@@ -60,7 +70,10 @@ export class AgentAPI {
 
     // Job polling
     this.router.get('/jobs', (req, res) => this.getAvailableJobs(req, res));
+    
+    // Job result submission (with optional file upload)
     this.router.post('/jobs/:jobId/result', (req, res) => this.submitJobResult(req, res));
+    this.router.post('/jobs/:jobId/files', (req, res) => this.uploadJobFiles(req, res));
 
     // Agent status
     this.router.get('/agents', (req, res) => this.listAgents(req, res));
@@ -159,6 +172,101 @@ export class AgentAPI {
     console.log(`✅ Job result received: ${jobId} (exit code: ${result.exitCode})`);
 
     res.json({ success: true });
+  }
+
+  /**
+   * Upload job files (multipart form data)
+   */
+  private uploadJobFiles(req: Request, res: Response): void {
+    const jobId = req.params.jobId as string;
+
+    if (!this.fileStorage) {
+      res.status(503).json({ error: 'File storage not configured' });
+      return;
+    }
+
+    // Initialize multer if not already done
+    if (!this.upload) {
+      this.upload = multer({
+        storage: multer.memoryStorage(),
+        limits: {
+          fileSize: 100 * 1024 * 1024, // 100MB limit
+          files: 50,
+        },
+      });
+    }
+
+    // Use multer middleware
+    this.upload.array('files')(req as any, res as any, async (err: any) => {
+      if (err) {
+        console.error('File upload error:', err);
+        res.status(400).json({ error: `Upload failed: ${err.message}` });
+        return;
+      }
+
+      const files = (req as any).files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        res.status(400).json({ error: 'No files provided' });
+        return;
+      }
+
+      try {
+        const savedFiles: Array<{
+          filename: string;
+          type: string;
+          size: number;
+          url: string;
+        }> = [];
+
+        for (const file of files) {
+          const fileType = this.inferFileType(file.originalname);
+          const fileInfo = await this.fileStorage!.saveFile(jobId, file.originalname, file.buffer, fileType);
+          
+          savedFiles.push({
+            filename: file.originalname,
+            type: fileType,
+            size: fileInfo.size,
+            url: `/api/results/${jobId}/${encodeURIComponent(file.originalname)}`,
+          });
+        }
+
+        console.log(`📁 Uploaded ${savedFiles.length} file(s) for job ${jobId}`);
+        res.json({ success: true, files: savedFiles });
+      } catch (error) {
+        console.error('File save error:', error);
+        res.status(500).json({ error: 'Failed to save files' });
+      }
+    });
+  }
+
+  /**
+   * Infer file type from filename
+   */
+  private inferFileType(filename: string): string {
+    const ext = path.extname(filename).toLowerCase();
+    const typeMap: Record<string, string> = {
+      '.txt': 'text',
+      '.md': 'text',
+      '.json': 'text',
+      '.csv': 'text',
+      '.log': 'text',
+      '.png': 'image',
+      '.jpg': 'image',
+      '.jpeg': 'image',
+      '.gif': 'image',
+      '.webp': 'image',
+      '.bmp': 'image',
+      '.svg': 'image',
+      '.mp4': 'video',
+      '.avi': 'video',
+      '.mov': 'video',
+      '.webm': 'video',
+      '.mp3': 'audio',
+      '.wav': 'audio',
+      '.ogg': 'audio',
+      '.flac': 'audio',
+    };
+    return typeMap[ext] || 'binary';
   }
 
   /**
