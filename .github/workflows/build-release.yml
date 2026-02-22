@@ -38,12 +38,16 @@ jobs:
         run: npm run build -w @mycluster/desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
+      - name: List release directory
+        run: ls -la apps/desktop/release/ || dir apps\desktop\release\
+        continue-on-error: true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-builds
-          path: apps/desktop/release/*.{exe,blockmap}
+          path: apps/desktop/release/
           if-no-files-found: error
       
       - name: Create/Update GitHub Release (Draft)
