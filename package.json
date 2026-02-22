@@ -22,6 +22,7 @@
   "author": "Leafdriving",
   "license": "MIT",
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.13.9",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -34,6 +35,7 @@
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "dependencies": {
+    "@types/cors": "^2.8.19",
     "axios": "^1.7.9",
     "electron-store": "^11.0.2",
     "express": "^4.21.2",

@@ -1,7 +1,8 @@
 import { ipcMain, app } from 'electron';
-import { AppConfig } from '@shared/types';
+import { AppConfig, ApiEndpoint } from '@shared/types';
 import Store from 'electron-store';
 import crypto from 'crypto';
+import { serverService } from '../server/server';
 
 const store = new Store<AppConfig>();
 
@@ -68,6 +69,46 @@ export const ipcHandlers = {
     // Get instance identity
     ipcMain.handle('app:getInstanceId', (): string => {
       return store.get('instanceId') || '';
+    });
+
+    // Server control handlers
+    ipcMain.handle('server:start', async (): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const config = store.store;
+        serverService.initialize({
+          port: config.serverPort || 3000,
+          allowedOrigins: config.allowedOrigins || ['*'],
+          authToken: config.authToken,
+        });
+        await serverService.start();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: (error as Error).message };
+      }
+    });
+
+    ipcMain.handle('server:stop', async (): Promise<void> => {
+      await serverService.stop();
+    });
+
+    ipcMain.handle('server:getStats', (): unknown => {
+      return serverService.getStats();
+    });
+
+    ipcMain.handle('server:getLogs', (): unknown => {
+      return serverService.getLogs();
+    });
+
+    ipcMain.handle('server:clearLogs', (): void => {
+      serverService.clearLogs();
+    });
+
+    ipcMain.handle('server:registerEndpoint', (_event, endpoint: ApiEndpoint): void => {
+      serverService.registerEndpoint(endpoint);
+    });
+
+    ipcMain.handle('server:unregisterEndpoint', (_event, endpointId: string): void => {
+      serverService.unregisterEndpoint(endpointId);
     });
   },
 };

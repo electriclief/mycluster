@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     export: () => ipcRenderer.invoke('config:export'),
     import: (json: string) => ipcRenderer.invoke('config:import', json),
   },
+
+  // Server control
+  invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
 });
 
 // Type declarations for the exposed API
@@ -38,4 +41,5 @@ export interface ElectronAPI {
     export: () => Promise<string>;
     import: (json: string) => Promise<boolean>;
   };
+  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
 }

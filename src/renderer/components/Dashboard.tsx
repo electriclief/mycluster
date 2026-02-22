@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
+import ServerDashboard from './ServerDashboard';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -18,6 +19,11 @@ function Dashboard() {
 
   if (isFirstLaunch === true) {
     return null;
+  }
+
+  // Show server dashboard if in server mode
+  if (mode === 'server') {
+    return <ServerDashboard />;
   }
 
   return (
@@ -105,7 +111,7 @@ function Dashboard() {
             Change Mode
           </button>
           <button
-            onClick={() => alert('Settings coming soon!')}
+            onClick={() => navigate('/settings')}
             style={{
               padding: '10px 20px',
               backgroundColor: '#0f3460',
