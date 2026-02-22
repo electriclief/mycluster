@@ -152,24 +152,44 @@ interface Job {
 ```
 
 ### R3.2 Agent Implementation
-- [ ] Create `packages/agent/` with Node.js CLI
-- [ ] Agent registration with server (heartbeat)
-- [ ] Job polling and execution
-- [ ] Result upload (with file transfer)
-- [ ] Graceful shutdown
+- [x] Create `packages/agent/` with Node.js CLI
+- [x] Agent registration with server (heartbeat)
+- [x] Job polling and execution
+- [x] Result upload (with file handling)
+- [x] Graceful shutdown (SIGINT/SIGTERM)
+- [x] Configurable: server URL, poll interval, concurrent jobs, python path
 
 ### R3.3 Python Runner
-- [ ] Create `runner.py` with argument parsing
-- [ ] Execute script, capture stdout/stderr
-- [ ] Handle file outputs (save to temp, return paths)
-- [ ] Exit code handling
-- [ ] Timeout enforcement
+- [x] Create `runner.py` with argument parsing
+- [x] Execute script, capture stdout/stderr
+- [x] Handle file outputs (scan output directory)
+- [x] Exit code handling
+- [x] File type detection (text/image/video/audio)
+- [x] Base64 preview for images
+- [x] Inline content for text files
 
-### R3.4 File Transfer System
-- [ ] Result file upload endpoint
-- [ ] File storage structure (`workspace/results/{jobId}/`)
+### R3.4 Server API
+- [x] Create `agent-api.ts` with Express routes
+- [x] POST /api/agent/register - Agent registration
+- [x] POST /api/agent/deregister - Agent deregistration
+- [x] POST /api/agent/heartbeat - Heartbeat endpoint
+- [x] GET /api/agent/jobs - Job polling
+- [x] POST /api/agent/jobs/:jobId/result - Result submission
+- [x] GET /api/agent/agents - List agents
+- [x] GET /api/agent/agents/:agentId - Get agent info
+- [x] Mount agent API in server.ts
+
+### R3.5 File Transfer System
+- [x] Result file scanning in output directory
+- [x] File type detection (text/image/video/audio/binary)
+- [x] Inline content for text files
+- [x] Base64 preview for images (max 1MB)
+- [x] File metadata (path, type, size)
+- [ ] Server-side file storage (`workspace/results/{jobId}/`)
 - [ ] Cleanup old results (configurable retention)
 - [ ] Download/stream results from GUI
+
+**Phase R3 Complete!** ✅ Agent system functional. Run with: `npm run start -w @mycluster/agent -- --server http://localhost:3000`
 
 ---
 

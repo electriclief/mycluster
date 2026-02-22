@@ -2,6 +2,7 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { Server as HttpServer } from 'http';
 import { ApiEndpoint, LogEntry } from '@shared/types';
+import { AgentAPI } from './agent-api.js';
 
 export interface ServerConfig {
   port: number;
@@ -25,8 +26,11 @@ export class ServerService {
   private requestCount = 0;
   private startTime: Date | null = null;
   private logs: LogEntry[] = [];
+  private agentAPI: AgentAPI | null = null;
 
-  constructor() {}
+  constructor() {
+    this.agentAPI = new AgentAPI();
+  }
 
   initialize(config: ServerConfig): void {
     this.config = config;
@@ -113,6 +117,11 @@ export class ServerService {
         count: endpointList.length,
       });
     });
+
+    // Mount agent API routes
+    if (this.agentAPI) {
+      this.app.use('/api/agent', this.agentAPI.getRouter());
+    }
 
     this.log('info', 'Server initialized', { port: config.port });
   }
