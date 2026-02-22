@@ -36,27 +36,28 @@ mycluster/
 ## Phase R1: Extract Core Package
 
 ### R1.1 Create Package Structure
-- [ ] Initialize monorepo (pnpm workspaces or npm workspaces)
-- [ ] Create `packages/core/` with package.json
-- [ ] Configure TypeScript for core package
-- [ ] Set up build pipeline (tsc → dist/)
+- [x] Initialize monorepo (npm workspaces)
+- [x] Create `packages/core/` with package.json
+- [x] Configure TypeScript for core package
+- [x] Set up build pipeline (tsc → dist/)
 
 ### R1.2 Move LAN Discovery to Core
-- [ ] Move `lan-discovery.ts` → `packages/core/src/discovery.ts`
-- [ ] Move types to `packages/core/src/types.ts`
-- [ ] Remove Electron `app.getPath` dependency → inject data dir
-- [ ] Export clean API: `createCluster(config)`, `discoverComputers()`, etc.
+- [x] Move discovery logic to `packages/core/src/discovery.ts`
+- [x] Move types to `packages/core/src/types.ts`
+- [x] Remove Electron `app.getPath` dependency → inject data dir
+- [x] Export clean API: `ping()`, `scanIpRange()`, `checkOllama()`, `autoDetectServices()`
 
 ### R1.3 Move Service Management to Core
-- [ ] Move service detection logic to `packages/core/src/services/`
-- [ ] Create service registry interface
-- [ ] Add Ollama detection as first service plugin
+- [x] Move service detection logic to `packages/core/src/discovery.ts`
+- [x] Create service types in `packages/core/src/types.ts`
+- [x] Add Ollama detection as first service plugin
 - [ ] Design plugin architecture for future services
 
 ### R1.4 Storage Abstraction
-- [ ] Create `StorageProvider` interface in core
-- [ ] Move current YAML logic to `packages/storage-yaml/`
-- [ ] Design async API with concurrency handling
+- [x] Create `StorageProvider` interface in core
+- [x] Create `packages/storage-yaml/` with YAML implementation
+- [x] Create `packages/core/src/storage-memory.ts` for testing
+- [x] Add async API with concurrency handling
 - [ ] Add transaction support (begin/commit/rollback)
 
 ### R1.5 Update Electron to Use Core

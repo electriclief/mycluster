@@ -1,0 +1,47 @@
+{
+  "name": "@mycluster/desktop",
+  "version": "0.1.0",
+  "description": "Desktop Electron application for MyCluster",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "build:dir": "vite build && electron-builder --dir",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "electron:dev": "vite"
+  },
+  "keywords": [
+    "electron",
+    "mycluster",
+    "desktop"
+  ],
+  "author": "Leafdriving",
+  "license": "MIT",
+  "dependencies": {
+    "@mycluster/core": "^0.1.0",
+    "@mycluster/storage-yaml": "^0.1.0",
+    "axios": "^1.7.9",
+    "cors": "^2.8.6",
+    "electron-store": "^11.0.2",
+    "express": "^4.21.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.13.9",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  }
+}
