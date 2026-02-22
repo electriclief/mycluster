@@ -40,8 +40,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List release directory
-        run: ls -la apps/desktop/release/ || dir apps\desktop\release\
+        run: |
+          echo "=== Release directory contents ==="
+          Get-ChildItem -Path apps/desktop/release/ -Recurse | ForEach-Object { Write-Host $_.FullName }
         continue-on-error: true
+        shell: pwsh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -49,15 +52,15 @@ jobs:
           name: windows-builds
           path: apps/desktop/release/
           if-no-files-found: error
-      
+
       - name: Create/Update GitHub Release (Draft)
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           generate_release_notes: true
           files: |
-            apps/desktop/release/MyCluster Setup *.exe
-            apps/desktop/release/MyCluster *.exe
+            apps/desktop/release/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
