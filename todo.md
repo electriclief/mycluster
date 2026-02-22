@@ -1,5 +1,8 @@
 # MyCluster - LAN API Control Application
 
+> **Status:** Phase development on hold. Now implementing features iteratively based on user feedback.
+> **Current Focus:** LAN client discovery via ping, YAML-based computer registry.
+
 ## Project Overview
 A dual-mode Electron application that enables control of remote APIs and clients on a local LAN. The same app functions as either a **Server** (exposes APIs) or **Client** (consumes APIs), selected during first-time setup.
 
@@ -101,6 +104,8 @@ A dual-mode Electron application that enables control of remote APIs and clients
 ---
 
 ## Phase 5: Client Mode Implementation
+
+**[ON HOLD]** - Implementing LAN client discovery with ping-based detection instead.
 
 ### 5.1 Server Discovery
 - [ ] Implement LAN discovery (UDP broadcast/multicast)

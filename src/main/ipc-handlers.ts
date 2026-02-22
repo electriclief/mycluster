@@ -3,6 +3,7 @@ import { AppConfig, ApiEndpoint } from '@shared/types';
 import Store from 'electron-store';
 import crypto from 'crypto';
 import { serverService } from '../server/server';
+import * as lanDiscovery from './lan-discovery';
 
 const store = new Store<AppConfig>();
 
@@ -109,6 +110,44 @@ export const ipcHandlers = {
 
     ipcMain.handle('server:unregisterEndpoint', (_event, endpointId: string): void => {
       serverService.unregisterEndpoint(endpointId);
+    });
+
+    // LAN Discovery handlers
+    ipcMain.handle('lan:scan', async (_event, options: {
+      baseIp: string;
+      start: number;
+      end: number;
+    }): Promise<{ ip: string; isOnline: boolean }[]> => {
+      return lanDiscovery.scanIpRange(options.baseIp, options.start, options.end);
+    });
+
+    ipcMain.handle('lan:getComputers', (): unknown => {
+      return lanDiscovery.loadComputers();
+    });
+
+    ipcMain.handle('lan:addComputer', (_event, computer: {
+      ipAddress: string;
+      computerName: string;
+      isOnline: boolean;
+      lastSeen: string;
+    }): unknown => {
+      return lanDiscovery.addComputer(computer);
+    });
+
+    ipcMain.handle('lan:removeComputer', (_event, id: string): void => {
+      lanDiscovery.removeComputer(id);
+    });
+
+    ipcMain.handle('lan:updateComputer', (_event, id: string, updates: {
+      computerName?: string;
+      isOnline?: boolean;
+      lastSeen?: string;
+    }): void => {
+      lanDiscovery.updateComputer(id, updates);
+    });
+
+    ipcMain.handle('lan:ping', (_event, ip: string): Promise<boolean> => {
+      return lanDiscovery.ping(ip);
     });
   },
 };

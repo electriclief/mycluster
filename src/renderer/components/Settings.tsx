@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
+import LanDiscovery from './LanDiscovery';
 
 function Settings() {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ function Settings() {
   const [importData, setImportData] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'general' | 'lan'>('general');
 
   useEffect(() => {
     async function load() {
@@ -81,6 +83,38 @@ function Settings() {
     <div>
       <h2 style={{ marginBottom: '20px', color: '#e94560' }}>Settings</h2>
 
+      {/* Tab Navigation */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #0f3460', paddingBottom: '10px' }}>
+        <button
+          onClick={() => setActiveTab('general')}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: activeTab === 'general' ? '#e94560' : '#0f3460',
+            border: 'none',
+            borderRadius: '6px 6px 0 0',
+            color: '#eee',
+            cursor: 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          ⚙️ General
+        </button>
+        <button
+          onClick={() => setActiveTab('lan')}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: activeTab === 'lan' ? '#e94560' : '#0f3460',
+            border: 'none',
+            borderRadius: '6px 6px 0 0',
+            color: '#eee',
+            cursor: 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          🌐 LAN Computers
+        </button>
+      </div>
+
       {/* Messages */}
       {message && (
         <div
@@ -96,6 +130,9 @@ function Settings() {
         </div>
       )}
 
+      {/* Tab Content */}
+      {activeTab === 'general' ? (
+        <>
       {/* Instance Info */}
       <div
         style={{
@@ -353,6 +390,11 @@ function Settings() {
       >
         Save Settings
       </button>
+      </>
+
+      {activeTab === 'lan' && (
+        <LanDiscovery />
+      )}
 
       {/* Restart Dialog */}
       {showRestartDialog && (
