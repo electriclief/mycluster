@@ -46,7 +46,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-
-// IPC event handlers
-ipcMain.handle('app:get-version', () => app.getVersion());
-ipcMain.handle('app:get-platform', () => process.platform);
