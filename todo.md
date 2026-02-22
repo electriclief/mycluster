@@ -44,16 +44,16 @@ A dual-mode Electron application that enables control of remote APIs and clients
 ### 2.2 Renderer Process (UI Framework)
 - [x] Set up React with TypeScript
 - [x] Create basic app shell/layout
-- [ ] Implement routing (react-router-dom)
-- [ ] Set up state management (Zustand or Context API)
+- [x] Implement routing (react-router-dom)
+- [x] Set up state management (Zustand)
 
 ### 2.3 First-Time Setup Flow
-- [ ] Detect first launch (check config file existence)
-- [ ] Create setup wizard component:
-  - [ ] Mode selection (Server / Client)
-  - [ ] Basic configuration input
-  - [ ] Save configuration to persistent storage
-- [ ] Store mode selection in electron-store
+- [x] Detect first launch (check config file existence)
+- [x] Create setup wizard component:
+  - [x] Mode selection (Server / Client)
+  - [x] Basic configuration input
+  - [x] Save configuration to persistent storage
+- [x] Store mode selection in electron-store
 
 ---
 
@@ -156,22 +156,21 @@ A dual-mode Electron application that enables control of remote APIs and clients
 
 ## Phase 6: Security
 
-### 6.1 Authentication (Basic)
-- [ ] API key generation (server mode)
-- [ ] API key storage and management
-- [ ] Key-based authentication middleware
-- [ ] Client-side API key configuration
+### 6.1 Authentication (Zero-Config / Invisible)
+- [x] No user-facing authentication (LAN trust model)
+- [ ] Auto-generated instance ID for peer identification
+- [ ] Automatic token exchange between instances (no user input)
+- [ ] Token stored in electron-store, attached to all requests automatically
 
 ### 6.2 Electron Security
-- [ ] Context isolation enabled
-- [ ] Node integration disabled in renderer
+- [x] Context isolation enabled
+- [x] Node integration disabled in renderer
 - [ ] CSP (Content Security Policy) headers
 - [ ] Disable webSecurity only if absolutely necessary
 
-### 6.3 Network Security
-- [ ] Optional HTTPS/TLS support
-- [ ] IP whitelist (server mode)
-- [ ] Rate limiting (server mode)
+### 6.3 Network Security (Optional)
+- [ ] Optional HTTPS/TLS support (for non-trusted networks)
+- [ ] Rate limiting (prevent accidental overload)
 
 ---
 
@@ -265,6 +264,7 @@ A dual-mode Electron application that enables control of remote APIs and clients
 | State Management | Zustand | Simple, minimal boilerplate |
 | Storage | electron-store | Persistent, type-safe |
 | Styling | Tailwind CSS | Rapid UI development |
+| Security Model | Zero-config (LAN trust) | No user friction, auto-tokens |
 
 ---
 
@@ -275,6 +275,7 @@ A dual-mode Electron application that enables control of remote APIs and clients
 - **Port Conflicts**: Validate port availability before starting server
 - **CORS**: Pre-configure for common LAN IP ranges (192.168.x.x, 10.x.x.x)
 - **Discovery Protocol**: Document protocol for future interoperability
+- **Security**: Zero-config trust model for LAN; auto-generated tokens invisible to user
 
 ---
 
@@ -282,9 +283,8 @@ A dual-mode Electron application that enables control of remote APIs and clients
 
 1. Should we support running both server and client modes simultaneously?
 2. What discovery protocol to prioritize (UDP broadcast vs mDNS)?
-3. Default authentication mechanism for MVP?
-4. Support for binary request/response bodies in Phase 1?
+3. Support for binary request/response bodies in Phase 1?
 
 ---
 
-*Last Updated: 2026-02-21 - Phase 2.1 Complete*
+*Last Updated: 2026-02-21 - Phase 2 Complete*

@@ -6,7 +6,8 @@ export interface AppConfig {
   allowedOrigins: string[];
   apiEndpoints?: ApiEndpoint[];
   discoveredServers?: DiscoveredServer[];
-  apiKey?: string;
+  instanceId: string;
+  authToken?: string;
 }
 
 export interface ApiEndpoint {

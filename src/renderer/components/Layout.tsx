@@ -1,8 +1,9 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAppStore } from '../store';
 
 function Layout() {
+  const navigate = useNavigate();
   const { loadConfig, isFirstLaunch } = useAppStore();
 
   useEffect(() => {
@@ -28,8 +29,20 @@ function Layout() {
       }}>
         <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#e94560' }}>MyCluster</h1>
         <nav style={{ display: 'flex', gap: '15px' }}>
-          <a href="/" style={{ color: '#eee', textDecoration: 'none' }}>Dashboard</a>
-          <a href="/settings" style={{ color: '#eee', textDecoration: 'none' }}>Settings</a>
+          <a
+            href="/"
+            onClick={(e) => { e.preventDefault(); navigate('/'); }}
+            style={{ color: '#eee', textDecoration: 'none', cursor: 'pointer' }}
+          >
+            Dashboard
+          </a>
+          <a
+            href="/settings"
+            onClick={(e) => { e.preventDefault(); navigate('/settings'); }}
+            style={{ color: '#eee', textDecoration: 'none', cursor: 'pointer' }}
+          >
+            Settings
+          </a>
         </nav>
       </header>
 
