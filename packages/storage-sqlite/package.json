@@ -1,0 +1,34 @@
+{
+  "name": "@mycluster/storage-sqlite",
+  "version": "0.1.0",
+  "description": "SQLite storage provider for MyCluster",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./migrate": "./dist/migrate.js"
+  },
+  "bin": {
+    "mycluster-migrate": "./dist/migrate.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "migrate": "node dist/migrate.js"
+  },
+  "keywords": ["sqlite", "storage", "mycluster"],
+  "author": "Leafdriving",
+  "license": "MIT",
+  "dependencies": {
+    "@mycluster/core": "^0.1.0",
+    "@mycluster/storage-yaml": "^0.1.0",
+    "sql.js": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/sql.js": "^1.4.9",
+    "@types/node": "^22.13.9",
+    "typescript": "^5.7.3"
+  }
+}

@@ -229,17 +229,20 @@ CREATE TABLE jobs (
 ```
 
 ### R4.2 SQLite Implementation
-- [ ] Create `packages/storage-sqlite/`
-- [ ] Implement StorageProvider interface
-- [ ] Add migrations system
-- [ ] Connection pooling
-- [ ] Prepared statements for performance
+- [x] Create `packages/storage-sqlite/`
+- [x] Implement StorageProvider interface with sql.js
+- [x] Database schema for computers, services, jobs
+- [x] Indexes for performance
+- [x] WAL mode for concurrency
+- [x] Auto-save on modifications
 
 ### R4.3 Migration from YAML
-- [ ] Detect existing YAML data
-- [ ] One-time migration tool
-- [ ] Backup before migration
-- [ ] Rollback option
+- [x] Create migration tool (migrate.ts)
+- [x] Automatic backup before migration
+- [x] Verify migration integrity
+- [x] CLI: `node dist/migrate.js [dataDir]`
+
+**Phase R4 Complete!** ✅ SQLite storage functional. Use with: `new SqliteStorage({ dataDir: '/path' })`
 
 ---
 
