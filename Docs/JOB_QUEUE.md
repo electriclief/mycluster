@@ -1,0 +1,304 @@
+# Job Queue Guide
+
+## Overview
+
+The MyCluster Job Queue system enables batch processing of Python scripts across multiple machines. Jobs are submitted via the UI, queued, and executed by available agents.
+
+## Job Lifecycle
+
+```
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌───────────┐
+│ pending │───▶│ running │───▶│ complete │    │  failed  │    │ cancelled │
+└─────────┘    └─────────┘    └──────────┘    └──────────┘    └───────────┘
+                    │
+                    ▼
+               ┌─────────┐
+               │ pending │ (retry)
+               └─────────┘
+```
+
+### Status Values
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Job is queued, waiting for an agent |
+| `running` | Job is being executed by an agent |
+| `complete` | Job finished successfully |
+| `failed` | Job failed (after max retries) |
+| `cancelled` | Job was cancelled by user |
+
+## Submitting Jobs
+
+### Via Desktop UI
+
+1. Navigate to **Jobs** tab
+2. Fill in the form:
+   - **Target Computer**: Select from dropdown
+   - **Python Script**: Enter Python code
+   - **Priority**: 0-10 slider (higher = more priority)
+3. Click **Submit Job**
+
+### Via IPC (Programmatic)
+
+```typescript
+// From Electron renderer process
+const job = await window.electronAPI.invoke('job:enqueue', {
+  script: "print('Hello from cluster!')",
+  targetComputerId: 'computer_123',
+  priority: 5,
+  args: { name: 'World' },
+});
+
+console.log('Job submitted:', job.id);
+```
+
+### Via API (Future)
+
+```typescript
+const response = await fetch('http://localhost:3000/api/jobs', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    script: "print('hello')",
+    targetComputerId: 'computer_123',
+    priority: 5,
+  }),
+});
+
+const job = await response.json();
+```
+
+## Job Configuration
+
+### Script
+
+Python code to execute. Can be:
+- Simple inline scripts
+- Multi-line Python code
+- Import statements (if packages available on agent)
+
+**Example:**
+```python
+# Simple output
+print("Processing data...")
+
+# With imports
+import math
+result = math.sqrt(144)
+print(f"Result: {result}")
+
+# With arguments
+name = args.get('name', 'default')
+print(f"Hello, {name}!")
+```
+
+### Priority
+
+Integer 0-10. Higher priority jobs are executed first.
+
+| Priority | Use Case |
+|----------|----------|
+| 0-2 | Low priority, background tasks |
+| 3-5 | Normal priority, standard jobs |
+| 6-8 | High priority, important tasks |
+| 9-10 | Critical, execute immediately |
+
+### Timeout
+
+Maximum execution time in milliseconds. Default: 300000 (5 minutes).
+
+If a job exceeds its timeout:
+- Process is killed
+- Job marked as failed
+- Error: "Job timed out"
+
+### Arguments
+
+Key-value pairs passed to the script via `args` global.
+
+**Submit:**
+```json
+{
+  "script": "print(f'Hello, {args.get(\"name\")}')",
+  "args": { "name": "Alice", "count": 42 }
+}
+```
+
+**In Script:**
+```python
+name = args.get('name', 'World')
+count = args.get('count', 0)
+print(f"Hello {name}, count is {count}")
+```
+
+## Viewing Jobs
+
+### Job List
+
+Navigate to **Jobs** tab to see all jobs with:
+- Status badge (color-coded)
+- Script preview
+- Creation time
+- Priority indicator
+
+### Filtering
+
+Filter jobs by status:
+- **All**: Show all jobs
+- **Pending**: Queued jobs waiting for execution
+- **Running**: Currently executing
+- **Complete**: Successfully finished
+- **Failed**: Failed after retries
+
+### Job Details
+
+Click **Details** on any job to see:
+- Full script
+- Status
+- Target computer ID
+- Created/Started/Completed timestamps
+- Priority
+- Result (stdout, stderr, files, error)
+
+## Managing Jobs
+
+### Cancel a Job
+
+Cancel pending or running jobs:
+1. Find the job in the list
+2. Click **Cancel**
+3. Confirm cancellation
+
+**Note:** Running jobs may complete before cancellation takes effect.
+
+### Retry Logic
+
+Failed jobs are automatically retried:
+- Default: 3 retries
+- Exponential backoff between retries
+- After max retries, job marked as `failed`
+
+### Cleanup Old Jobs
+
+Old completed jobs can be cleaned up:
+
+```typescript
+// Via IPC
+const deleted = await window.electronAPI.invoke('job:cleanup', 24);
+console.log(`Deleted ${deleted} old jobs`);
+```
+
+## Job Results
+
+### Result Structure
+
+```typescript
+interface JobResult {
+  type: 'text' | 'image' | 'video' | 'audio' | 'files';
+  data?: string;          // Text output
+  files?: string[];       // File paths
+  exitCode?: number;      // Process exit code
+  error?: string;         // Error message if failed
+}
+```
+
+### Output Types
+
+| Type | Description | Handling |
+|------|-------------|----------|
+| `text` | Text output | Displayed inline |
+| `image` | Image file | Thumbnail preview |
+| `video` | Video file | Download link |
+| `audio` | Audio file | Download link |
+| `files` | Multiple files | File list with download |
+
+### File Outputs
+
+Files generated by jobs are stored in the agent's workspace:
+
+```
+/tmp/mycluster-agent/
+└── job_123456/
+    ├── output.png
+    ├── result.csv
+    └── data/
+        └── processed.json
+```
+
+File metadata includes:
+- Path (relative to job directory)
+- Type (detected by extension)
+- Size (bytes)
+- Content (inline for text files)
+- Preview (base64 for images, max 1MB)
+
+## Statistics
+
+View queue statistics:
+
+```typescript
+const stats = await window.electronAPI.invoke('job:stats');
+// {
+//   total: 50,
+//   pending: 5,
+//   running: 2,
+//   complete: 40,
+//   failed: 2,
+//   cancelled: 1
+// }
+```
+
+## Best Practices
+
+### Script Design
+
+1. **Keep scripts focused** - One task per job
+2. **Handle errors gracefully** - Use try/except
+3. **Use arguments** - Make scripts reusable
+4. **Output progress** - Print status updates
+5. **Clean up temp files** - Don't leave artifacts
+
+**Example:**
+```python
+try:
+    print("Starting processing...")
+    
+    # Get arguments
+    input_file = args.get('input', 'data.csv')
+    output_file = args.get('output', 'result.csv')
+    
+    # Process
+    print(f"Reading {input_file}...")
+    # ... processing code ...
+    
+    print(f"Writing {output_file}...")
+    # ... output code ...
+    
+    print("Complete!")
+    
+except Exception as e:
+    print(f"Error: {e}")
+    raise  # Re-raise to mark job as failed
+```
+
+### Priority Guidelines
+
+| Priority | When to Use |
+|----------|-------------|
+| 0-2 | Batch reports, data exports |
+| 3-5 | Standard API calls, data processing |
+| 6-8 | User-facing operations, real-time tasks |
+| 9-10 | Critical system operations |
+
+### Timeout Settings
+
+| Task Type | Recommended Timeout |
+|-----------|---------------------|
+| Simple calculation | 10-30 seconds |
+| API call | 30-60 seconds |
+| Data processing | 2-5 minutes |
+| Video/image processing | 10-30 minutes |
+
+---
+
+*For agent execution details, see [AGENT_GUIDE.md](./AGENT_GUIDE.md)*

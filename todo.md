@@ -358,5 +358,18 @@ CREATE TABLE jobs (
 
 ---
 
-*Last Updated: 2026-02-21 - Starting Monorepo Core Architecture Refactor*
+*Last Updated: 2026-02-21 - Phase R3 Complete! Agent system functional.*
 *Branch: feat/monorepo-architecture*
+
+---
+
+## Documentation
+
+Full documentation is available in the [`Docs/`](./Docs/README.md) folder:
+
+- **[README.md](./Docs/README.md)** - Documentation index and quick start
+- **[ARCHITECTURE.md](./Docs/ARCHITECTURE.md)** - System architecture and design
+- **[PACKAGES.md](./Docs/PACKAGES.md)** - Package reference guide
+- **[AGENT_GUIDE.md](./Docs/AGENT_GUIDE.md)** - Agent setup and usage
+- **[API_REFERENCE.md](./Docs/API_REFERENCE.md)** - Server API documentation
+- **[JOB_QUEUE.md](./Docs/JOB_QUEUE.md)** - Job queue system guide
