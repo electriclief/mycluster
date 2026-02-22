@@ -49,7 +49,6 @@
   "build": {
     "appId": "com.mycluster.app",
     "productName": "MyCluster",
-    "version": "0.0.2",
     "directories": {
       "output": "release"
     },
@@ -74,10 +73,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico"
+      "createStartMenuShortcut": true
     },
     "publish": {
       "provider": "github",
