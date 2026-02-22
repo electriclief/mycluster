@@ -482,25 +482,39 @@ Complete documentation is available in the [`Docs/`](./Docs/) folder:
 
 ---
 
-## 🎯 Next Release: v0.0.2 - Multi-Platform
+## 🎯 Next Release: v0.0.2 - Windows 11 Release
 
-**Target:** Build for Windows, Linux, and macOS
+**Target:** Windows 11 builds with auto-publish to GitHub
 
 ### Release Goals
-- [ ] Windows installer (NSIS) - x64
-- [ ] Windows portable - x64
-- [ ] Linux AppImage - x64
-- [ ] Linux deb package - x64
-- [ ] macOS DMG - x64/arm64
-- [ ] Cross-platform agent binaries
-- [ ] Release notes for v0.0.2 features
-- [ ] GitHub release with all artifacts
+- [x] Windows installer (NSIS) - x64
+- [x] Windows portable - x64
+- [ ] Linux AppImage - x64 (v0.0.3)
+- [ ] Linux deb package - x64 (v0.0.3)
+- [ ] macOS DMG - x64/arm64 (v0.0.3)
+- [x] Auto-generate release notes
+- [x] GitHub Actions workflow
+- [ ] Publish to GitHub Releases (on tag push)
 
 ### New Features in v0.0.2
-- File storage & results management
-- Service plugin architecture
-- Automatic API key authentication
-- Comprehensive audit logging
-- Results Viewer GUI
+- ✅ File storage & results management
+- ✅ Service plugin architecture
+- ✅ Automatic API key authentication
+- ✅ Comprehensive audit logging
+- ✅ Results Viewer GUI
+- ✅ Docker containers & systemd
+- ✅ E2E testing with Playwright
+- ✅ Performance benchmarks
+
+### Release Commands
+```bash
+# Build and publish (requires GitHub token)
+npm run build:publish -w @mycluster/desktop
+
+# Or manually tag and push
+git tag v0.0.2
+git push origin v0.0.2
+# GitHub Actions will build and create draft release
+```
 
 ---

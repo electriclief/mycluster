@@ -1,6 +1,6 @@
 {
   "name": "@mycluster/desktop",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Desktop Electron application for MyCluster",
   "main": "dist/main/main.js",
   "scripts": {
@@ -9,7 +9,9 @@
     "build:dir": "vite build && electron-builder --dir",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "electron:dev": "vite"
+    "electron:dev": "vite",
+    "build:win": "tsc && vite build && electron-builder --win --publish always",
+    "build:publish": "tsc && vite build && electron-builder --win --publish always"
   },
   "keywords": [
     "electron",
@@ -47,6 +49,7 @@
   "build": {
     "appId": "com.mycluster.app",
     "productName": "MyCluster",
+    "version": "0.0.2",
     "directories": {
       "output": "release"
     },
@@ -64,19 +67,23 @@
           "target": "portable",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "sign": null
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico"
     },
-    "mac": {
-      "target": "dmg"
-    },
-    "linux": {
-      "target": ["AppImage", "deb"]
+    "publish": {
+      "provider": "github",
+      "owner": "electriclief",
+      "repo": "mycluster",
+      "releaseType": "draft"
     }
   }
 }
