@@ -107,7 +107,15 @@ A dual-mode Electron application that enables control of remote APIs and clients
 
 **[ON HOLD]** - Implementing LAN client discovery with ping-based detection instead.
 
-### 5.1 Server Discovery
+### 5.1 LAN Computer Discovery (NEW - Implemented)
+- [x] Ping-based IP scanning (192.168.1.100-160)
+- [x] YAML file storage for computer registry
+- [x] Add computer with custom name
+- [x] Remove computers from registry
+- [x] Online/offline status indicator
+- [x] Manual status refresh
+
+### 5.2 Server Discovery (Original Plan)
 - [ ] Implement LAN discovery (UDP broadcast/multicast)
 - [ ] mDNS/Bonjour integration (optional)
 - [ ] Manual server address input
@@ -274,4 +282,4 @@ A dual-mode Electron application that enables control of remote APIs and clients
 
 ---
 
-*Last Updated: 2026-02-21 - Phase 4 Complete*
+*Last Updated: 2026-02-21 - LAN Discovery Feature Added*
