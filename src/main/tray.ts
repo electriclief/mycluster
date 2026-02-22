@@ -1,13 +1,27 @@
-import { Tray, Menu, BrowserWindow, app } from 'electron';
-import path from 'path';
+import { Tray, Menu, BrowserWindow, app, nativeImage, NativeImage } from 'electron';
 
 let tray: Tray | null = null;
 
-export function setupTray(mainWindow: BrowserWindow): Tray {
-  // Use default Electron icon or custom if available
-  const iconPath = path.join(__dirname, '../../icon.png');
+// Create a simple colored icon programmatically
+function createTrayIcon(): NativeImage {
+  const size = 16;
+  const color = '#e94560'; // Match app theme color
   
-  tray = new Tray(iconPath || app.getAppPath());
+  // Create SVG data URI for a simple rounded square
+  const svg = `
+    <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${size}" height="${size}" fill="${color}" rx="2"/>
+    </svg>
+  `;
+  
+  return nativeImage.createFromDataURL(
+    `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+  );
+}
+
+export function setupTray(mainWindow: BrowserWindow): Tray {
+  const icon = createTrayIcon();
+  tray = new Tray(icon);
   
   const contextMenu = Menu.buildFromTemplate([
     {
