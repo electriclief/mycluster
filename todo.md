@@ -1,285 +1,321 @@
-# MyCluster - LAN API Control Application
+# MyCluster - Distributed Compute Cluster
 
-> **Status:** Phase development on hold. Now implementing features iteratively based on user feedback.
-> **Current Focus:** LAN client discovery via ping, YAML-based computer registry.
+> **Status:** Refactoring to monorepo architecture for distributed compute vision
+> **Current Focus:** Extracting core orchestration engine from Electron
 
-## Project Overview
-A dual-mode Electron application that enables control of remote APIs and clients on a local LAN. The same app functions as either a **Server** (exposes APIs) or **Client** (consumes APIs), selected during first-time setup.
-
-**Initial Scope:** API calls only (UI/visual controls in future phase)
-
----
-
-## Phase 1: Project Setup & Infrastructure
-
-### 1.0 Git Repository Setup
-- [x] Initialize git repository
-- [x] Create `.gitignore` for Electron/Node.js
-- [x] Create initial commit
-- [x] Set up branching strategy (master/develop)
-- [ ] Configure git hooks (optional: husky for pre-commit)
-
-### 1.1 Initialize Project Structure
-- [x] Create package.json with Electron dependencies
-- [x] Configure build scripts (electron-builder for both platforms)
-- [x] Set up directory structure
-- [x] Install core dependencies (Electron, React, TypeScript, Vite, Express, Axios, Zustand)
-
-### 1.2 TypeScript Configuration
-- [x] Create tsconfig.json (main process)
-- [x] Create tsconfig.renderer.json (renderer process)
-- [x] Define shared types in `src/shared/types.ts`
-
-### 1.3 ESLint & Prettier
-- [ ] Configure linting rules
-- [ ] Add pre-commit hooks (optional)
+## Project Vision
+A **distributed compute cluster** GUI that coordinates APIs and batch jobs across multiple machines:
+- **Orchestration Hub**: Central dashboard for managing computers, services, and jobs
+- **Client Agents**: Lightweight runners executing Python scripts, returning text/image/video/audio
+- **Service Layer**: Auto-detected services (Ollama, etc.) on each computer
+- **Batch Processing**: Job queue with distribution, status tracking, result storage
 
 ---
 
-## Phase 2: Core Electron Application
+## Architecture Refactor (Current Priority)
 
-### 2.1 Main Process Setup
-- [x] Create main.ts (Electron entry point)
-- [x] Configure BrowserWindow with security settings
-- [x] Set up preload.ts with contextBridge
-- [x] Implement IPC handlers for renderer ↔ main communication
+### Migration Strategy
+**Goal:** Separate orchestration logic from Electron GUI for headless deployment and scalability
 
-### 2.2 Renderer Process (UI Framework)
-- [x] Set up React with TypeScript
-- [x] Create basic app shell/layout
-- [x] Implement routing (react-router-dom)
-- [x] Set up state management (Zustand)
-
-### 2.3 First-Time Setup Flow
-- [x] Detect first launch (check config file existence)
-- [x] Create setup wizard component:
-  - [x] Mode selection (Server / Client)
-  - [x] Basic configuration input
-  - [x] Save configuration to persistent storage
-- [x] Store mode selection in electron-store
+```
+mycluster/
+├── packages/
+│   ├── core/              # Pure TypeScript orchestration (no Electron)
+│   ├── storage-sqlite/    # SQLite storage with concurrency
+│   ├── storage-memory/    # In-memory for testing
+│   ├── server/            # HTTP server + API (uses core)
+│   ├── agent/             # Python script runner
+│   └── electron-app/      # Electron GUI (thin layer)
+├── apps/
+│   └── desktop/           # Electron app entry
+└── workspace/             # User cluster config
+```
 
 ---
 
-## Phase 3: Configuration System
+## Phase R1: Extract Core Package
 
-### 3.1 Configuration Storage
-- [x] Integrate electron-store for persistent settings
-- [x] Define configuration schema (mode, port, instanceId, authToken)
-- [x] Auto-generate instance ID and auth token on first launch
+### R1.1 Create Package Structure
+- [ ] Initialize monorepo (pnpm workspaces or npm workspaces)
+- [ ] Create `packages/core/` with package.json
+- [ ] Configure TypeScript for core package
+- [ ] Set up build pipeline (tsc → dist/)
 
-### 3.2 Configuration UI
-- [x] Settings page component
-- [x] Mode switch (with confirmation - requires restart)
-- [x] Port configuration
-- [x] Import/Export config functionality
+### R1.2 Move LAN Discovery to Core
+- [ ] Move `lan-discovery.ts` → `packages/core/src/discovery.ts`
+- [ ] Move types to `packages/core/src/types.ts`
+- [ ] Remove Electron `app.getPath` dependency → inject data dir
+- [ ] Export clean API: `createCluster(config)`, `discoverComputers()`, etc.
 
----
+### R1.3 Move Service Management to Core
+- [ ] Move service detection logic to `packages/core/src/services/`
+- [ ] Create service registry interface
+- [ ] Add Ollama detection as first service plugin
+- [ ] Design plugin architecture for future services
 
-## Phase 4: Server Mode Implementation
+### R1.4 Storage Abstraction
+- [ ] Create `StorageProvider` interface in core
+- [ ] Move current YAML logic to `packages/storage-yaml/`
+- [ ] Design async API with concurrency handling
+- [ ] Add transaction support (begin/commit/rollback)
 
-### 4.1 Express Server Setup
-- [x] Create server bootstrap in `src/server/`
-- [x] Configure Express with CORS for LAN access
-- [x] Implement health check endpoint (`/api/health`)
-- [x] Server lifecycle management (start/stop/restart)
-
-### 4.2 API Endpoint Management
-- [x] Define endpoint registration system
-- [x] Create endpoint schema
-- [x] Dynamic endpoint registration/deregistration
-- [x] Endpoint listing endpoint (`/api/endpoints`)
-
-### 4.3 Request/Response Handling
-- [x] JSON body parser middleware
-- [x] Error handling middleware
-- [x] Request logging
-- [x] Response time tracking
-
-### 4.4 Server Mode UI
-- [x] Dashboard showing active server status
-- [x] List of registered endpoints
-- [x] Request logs viewer
-- [x] Start/Stop server controls
+### R1.5 Update Electron to Use Core
+- [ ] Install `@mycluster/core` as dependency
+- [ ] Replace direct imports with core API calls
+- [ ] Verify all LAN features still work
+- [ ] Remove duplicated logic from main process
 
 ---
 
-## Phase 5: Client Mode Implementation
+## Phase R2: Job Queue System
 
-**[ON HOLD]** - Implementing LAN client discovery with ping-based detection instead.
+### R2.1 Job Model Design
+```typescript
+interface Job {
+  id: string;
+  script: string;           // Python script path or inline code
+  targetComputerId: string;
+  args?: Record<string, unknown>;
+  status: 'pending' | 'queued' | 'running' | 'complete' | 'failed' | 'cancelled';
+  priority: number;
+  result?: {
+    type: 'text' | 'image' | 'video' | 'audio' | 'files';
+    data?: string;          // Inline for text
+    files?: string[];       // Paths for media
+    exitCode?: number;
+    error?: string;
+  };
+  createdAt: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+  timeout?: number;
+}
+```
 
-### 5.1 LAN Computer Discovery (NEW - Implemented)
-- [x] Ping-based IP scanning (192.168.1.100-160)
-- [x] YAML file storage for computer registry
-- [x] Add computer with custom name
-- [x] Remove computers from registry
-- [x] Online/offline status indicator
-- [x] Manual status refresh
+### R2.2 Job Queue Implementation
+- [ ] Create `JobQueue` class in core
+- [ ] Implement enqueue/dequeue/cancel/status
+- [ ] Add job persistence (survives restart)
+- [ ] Job history and cleanup (old jobs)
 
-### 5.2 Server Discovery (Original Plan)
-- [ ] Implement LAN discovery (UDP broadcast/multicast)
-- [ ] mDNS/Bonjour integration (optional)
-- [ ] Manual server address input
-- [ ] Discovered servers list with status
+### R2.3 Job Execution Engine
+- [ ] Worker pool for parallel execution
+- [ ] Timeout handling
+- [ ] Retry logic (configurable)
+- [ ] Progress reporting (stdout/stderr streaming)
 
-### 5.2 API Call Execution
-- [ ] HTTP client service (axios wrapper)
-- [ ] Request builder component:
-  - [ ] Method selection
-  - [ ] URL/path input
-  - [ ] Headers editor
-  - [ ] Body editor (JSON with syntax highlighting)
-- [ ] Response viewer:
-  - [ ] Status code
-  - [ ] Headers
-  - [ ] Body (formatted JSON)
-  - [ ] Response time
-
-### 5.3 Saved Requests
-- [ ] Create/save/load request configurations
-- [ ] Organize requests into collections
-- [ ] Environment variables support
-- [ ] Export/import collections
-
-### 5.4 Client Mode UI
-- [ ] Server connection status indicator
-- [ ] Discovered servers panel
-- [ ] Request builder panel
-- [ ] Response display panel
-- [ ] Request history sidebar
-
----
-
-## Phase 6: Security
-
-### 6.1 Authentication (Zero-Config / Invisible)
-- [x] No user-facing authentication (LAN trust model)
-- [ ] Auto-generated instance ID for peer identification
-- [ ] Automatic token exchange between instances (no user input)
-- [ ] Token stored in electron-store, attached to all requests automatically
-
-### 6.2 Electron Security
-- [x] Context isolation enabled
-- [x] Node integration disabled in renderer
-- [ ] CSP (Content Security Policy) headers
-- [ ] Disable webSecurity only if absolutely necessary
-
-### 6.3 Network Security (Optional)
-- [ ] Optional HTTPS/TLS support (for non-trusted networks)
-- [ ] Rate limiting (prevent accidental overload)
+### R2.4 Job UI Components
+- [ ] Job queue dashboard
+- [ ] Create new job (script selection, target, args)
+- [ ] Job status list with filtering
+- [ ] Job detail view (logs, results, output files)
+- [ ] Cancel/retry controls
 
 ---
 
-## Phase 7: Polish & UX
+## Phase R3: Agent/Client Runner
 
-### 7.1 UI/UX Improvements
-- [ ] Dark/Light theme toggle
-- [ ] Responsive layout
-- [ ] Loading states
-- [ ] Error notifications (toast)
-- [ ] Confirmation dialogs for destructive actions
+### R3.1 Agent Architecture
+```
+┌─────────────────┐      ┌─────────────────┐
+│  Core (Server)  │──────│   Agent (CLI)   │
+│  - Job Queue    │ HTTP │  - Polls jobs   │
+│  - Registry     │      │  - Executes     │
+└─────────────────┘      └─────────────────┘
+                                  │
+                            ┌─────▼──────┐
+                            │ runner.py  │
+                            │ - Executes │
+                            │ - Returns  │
+                            └────────────┘
+```
 
-### 7.2 Developer Experience
-- [ ] Request/response logging to file
-- [ ] Export logs functionality
-- [ ] Keyboard shortcuts
-- [ ] Auto-save unsaved requests
+### R3.2 Agent Implementation
+- [ ] Create `packages/agent/` with Node.js CLI
+- [ ] Agent registration with server (heartbeat)
+- [ ] Job polling and execution
+- [ ] Result upload (with file transfer)
+- [ ] Graceful shutdown
 
----
+### R3.3 Python Runner
+- [ ] Create `runner.py` with argument parsing
+- [ ] Execute script, capture stdout/stderr
+- [ ] Handle file outputs (save to temp, return paths)
+- [ ] Exit code handling
+- [ ] Timeout enforcement
 
-## Phase 8: Testing
-
-### 8.1 Unit Tests
-- [ ] Test configuration system
-- [ ] Test server endpoint registration
-- [ ] Test client HTTP service
-- [ ] Test LAN discovery logic
-
-### 8.2 Integration Tests
-- [ ] Test server-client communication
-- [ ] Test IPC handlers
-- [ ] Test mode switching
-
-### 8.3 E2E Tests
-- [ ] Set up Playwright for Electron
-- [ ] Test first-time setup flow
-- [ ] Test API call workflow
-
----
-
-## Phase 9: Build & Distribution
-
-### 9.1 Build Configuration
-- [ ] Configure electron-builder
-- [ ] Set up auto-updater (electron-updater)
-- [ ] Code signing preparation
-
-### 9.2 Platform Targets
-- [ ] Windows (NSIS installer + portable)
-- [ ] macOS (DMG)
-- [ ] Linux (AppImage + deb)
-
-### 9.3 Release Process
-- [ ] GitHub Actions CI/CD pipeline
-- [ ] Automated version bumping
-- [ ] Release notes generation
+### R3.4 File Transfer System
+- [ ] Result file upload endpoint
+- [ ] File storage structure (`workspace/results/{jobId}/`)
+- [ ] Cleanup old results (configurable retention)
+- [ ] Download/stream results from GUI
 
 ---
 
-## Future Phases (Post-MVP)
+## Phase R4: SQLite Storage
 
-### Phase 10: Advanced Features
-- [ ] WebSocket support for real-time communication
-- [ ] GraphQL endpoint support
-- [ ] gRPC support
-- [ ] Request chaining/workflows
-- [ ] Scripting support (JavaScript/Python handlers)
+### R4.1 SQLite Schema Design
+```sql
+CREATE TABLE computers (
+  id TEXT PRIMARY KEY,
+  ip_address TEXT,
+  computer_name TEXT,
+  is_online BOOLEAN,
+  last_seen TEXT,
+  added_date TEXT
+);
 
-### Phase 11: Visual Control Interface
-- [ ] Drag-and-drop control builder
-- [ ] Dashboard widgets
-- [ ] Real-time data visualization
-- [ ] Custom control themes
+CREATE TABLE services (
+  id TEXT PRIMARY KEY,
+  computer_id TEXT REFERENCES computers(id),
+  type TEXT,
+  name TEXT,
+  enabled BOOLEAN,
+  config TEXT,  -- JSON
+  status TEXT,
+  last_checked TEXT
+);
 
-### Phase 12: Multi-Server Management
-- [ ] Server clustering
-- [ ] Load balancing
-- [ ] Failover configuration
-- [ ] Centralized management dashboard
+CREATE TABLE jobs (
+  id TEXT PRIMARY KEY,
+  computer_id TEXT REFERENCES computers(id),
+  script TEXT,
+  status TEXT,
+  result TEXT,  -- JSON
+  created_at TEXT,
+  completed_at TEXT
+);
+```
+
+### R4.2 SQLite Implementation
+- [ ] Create `packages/storage-sqlite/`
+- [ ] Implement StorageProvider interface
+- [ ] Add migrations system
+- [ ] Connection pooling
+- [ ] Prepared statements for performance
+
+### R4.3 Migration from YAML
+- [ ] Detect existing YAML data
+- [ ] One-time migration tool
+- [ ] Backup before migration
+- [ ] Rollback option
 
 ---
 
-## Technical Decisions
+## Phase R5: Server Refactor
+
+### R5.1 Decouple from Electron
+- [ ] Move `src/server/` → `packages/server/`
+- [ ] Remove Electron dependencies
+- [ ] Standalone CLI: `mycluster-server --port 3000`
+- [ ] Config from file or env vars
+
+### R5.2 API Enhancements
+- [ ] WebSocket for real-time updates
+- [ ] SSE for job progress streaming
+- [ ] File upload/download endpoints
+- [ ] Authentication tokens (for non-trusted networks)
+
+### R5.3 Server Dashboard API
+- [ ] Cluster health endpoint
+- [ ] Metrics (jobs/hour, success rate, avg duration)
+- [ ] Active connections
+- [ ] System resources (CPU, memory, disk)
+
+---
+
+## Phase R6: Electron GUI Refactor
+
+### R6.1 Thin GUI Layer
+- [ ] Electron imports `@mycluster/core` and `@mycluster/server`
+- [ ] GUI is pure presentation
+- [ ] All logic in core package
+- [ ] Can swap GUI later (web, Tauri, etc.)
+
+### R6.2 Dashboard Enhancements
+- [ ] Real-time job progress (WebSocket)
+- [ ] Service status cards per computer
+- [ ] Quick actions (scan, add job, refresh)
+- [ ] Cluster-wide metrics
+
+### R6.3 Job Management UI
+- [ ] Drag-drop script upload
+- [ ] Target selection (single, multiple, all)
+- [ ] Batch configuration
+- [ ] Results gallery (images, video thumbnails)
+
+---
+
+## Phase R7: Testing & Quality
+
+### R7.1 Unit Tests
+- [ ] Core package tests (Jest/Vitest)
+- [ ] Storage provider tests
+- [ ] Job queue tests
+- [ ] Service detection tests
+
+### R7.2 Integration Tests
+- [ ] Server + Core integration
+- [ ] Agent + Server integration
+- [ ] End-to-end job execution
+
+### R7.3 E2E Tests
+- [ ] Playwright for GUI workflows
+- [ ] CLI testing for agent
+- [ ] Performance benchmarks
+
+---
+
+## Updated Technical Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| UI Framework | React + TypeScript | Familiar, strong ecosystem |
-| Build Tool | Vite | Fast HMR, modern bundling |
-| Server Framework | Express.js | Lightweight, well-understood |
-| HTTP Client | Axios | Interceptors, easy error handling |
-| State Management | Zustand | Simple, minimal boilerplate |
-| Storage | electron-store | Persistent, type-safe |
-| Styling | Tailwind CSS | Rapid UI development |
-| Security Model | Zero-config (LAN trust) | No user friction, auto-tokens |
+| Monorepo Tool | pnpm workspaces | Fast, disk-efficient, good TypeScript support |
+| Core Package | Pure TypeScript | No Electron, runs anywhere |
+| Storage | SQLite (with YAML fallback) | Concurrency, transactions, scalability |
+| Job Queue | In-memory + persistence | Simple, no external dependencies |
+| Agent | Node.js + Python | Leverage existing Python ecosystem |
+| File Transfer | HTTP multipart | Simple, works through firewalls |
+| Real-time | WebSocket + SSE | Push updates, progress streaming |
+| Deployment | npm packages + CLI | Easy install, version management |
 
 ---
 
-## Notes & Considerations
+## Implementation Order
 
-- **Mode Switching**: Requires app restart; clearly communicate to user
-- **Firewall**: May need to prompt user to allow LAN access
-- **Port Conflicts**: Validate port availability before starting server
-- **CORS**: Pre-configure for common LAN IP ranges (192.168.x.x, 10.x.x.x)
-- **Discovery Protocol**: Document protocol for future interoperability
-- **Security**: Zero-config trust model for LAN; auto-generated tokens invisible to user
-
----
-
-## Open Questions
-
-1. Should we support running both server and client modes simultaneously?
-2. What discovery protocol to prioritize (UDP broadcast vs mDNS)?
-3. Support for binary request/response bodies in Phase 1?
+1. **R1: Extract Core** - Foundation for everything else
+2. **R2: Job Queue** - Enables batch processing vision
+3. **R3: Agent** - Python script execution
+4. **R4: SQLite** - Scalable storage
+5. **R5: Server Refactor** - Headless deployment
+6. **R6: GUI Refactor** - Polish and enhancements
+7. **R7: Testing** - Quality and stability
 
 ---
 
-*Last Updated: 2026-02-21 - LAN Discovery Feature Added*
+## Success Metrics
+
+- [ ] Core package runs without Electron
+- [ ] Server deploys headlessly on Raspberry Pi
+- [ ] Agent executes Python script, returns result
+- [ ] Job queue handles 100+ concurrent jobs
+- [ ] GUI shows real-time job progress
+- [ ] SQLite migration from YAML works
+- [ ] All existing features still functional
+
+---
+
+## Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Refactor breaks existing features | Incremental migration, feature flags |
+| SQLite adds complexity | Keep YAML as fallback option |
+| Agent security (arbitrary code) | Sandboxed execution, user opt-in |
+| File storage bloat | Automatic cleanup, retention policies |
+| Monorepo complexity | Clear package boundaries, documentation |
+
+---
+
+*Last Updated: 2026-02-21 - Starting Monorepo Core Architecture Refactor*
+*Branch: feat/monorepo-architecture*
