@@ -4,6 +4,13 @@ node_modules/
 # Build outputs
 dist/
 out/
+release/
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.blockmap
+builder-debug.yml
 
 # Logs
 *.log
