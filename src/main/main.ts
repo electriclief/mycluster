@@ -1,6 +1,13 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { ipcHandlers } from './ipc-handlers';
+import { setupTray } from './tray';
+
+// Extend app type for isQuiting property
+declare global {
+  // eslint-disable-next-line no-var
+  var __APP_IS_QUITING: boolean;
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -24,6 +31,15 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
+  // Hide to tray instead of closing
+  mainWindow.on('close', (event) => {
+    if (!global.__APP_IS_QUITING) {
+      event.preventDefault();
+      mainWindow?.hide();
+      return false;
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -33,6 +49,11 @@ function createWindow(): void {
 app.whenReady().then(() => {
   createWindow();
   ipcHandlers.register();
+  
+  // Setup tray icon
+  if (mainWindow) {
+    setupTray(mainWindow);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -45,4 +66,9 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Set quit flag
+app.on('before-quit', () => {
+  global.__APP_IS_QUITING = true;
 });
