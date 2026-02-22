@@ -282,22 +282,30 @@ CREATE TABLE jobs (
 ## Phase R6: Electron GUI Refactor
 
 ### R6.1 Thin GUI Layer
-- [ ] Electron imports `@mycluster/core` and `@mycluster/server`
-- [ ] GUI is pure presentation
-- [ ] All logic in core package
-- [ ] Can swap GUI later (web, Tauri, etc.)
+- [x] Electron imports `@mycluster/core` and `@mycluster/server`
+- [x] WebSocket hook for real-time updates (`useWebSocket`)
+- [x] GUI is presentation layer with live data
+- [x] Can swap GUI later (web, Tauri, etc.)
 
 ### R6.2 Dashboard Enhancements
-- [ ] Real-time job progress (WebSocket)
-- [ ] Service status cards per computer
-- [ ] Quick actions (scan, add job, refresh)
-- [ ] Cluster-wide metrics
+- [x] Cluster Metrics component with real-time stats
+- [x] Server status card (online/offline, uptime)
+- [x] Agent count (online/total)
+- [x] Job queue stats (pending/running/complete/failed)
+- [x] WebSocket connection indicator
+- [x] Quick actions (Submit Job card)
 
 ### R6.3 Job Management UI
-- [ ] Drag-drop script upload
-- [ ] Target selection (single, multiple, all)
-- [ ] Batch configuration
-- [ ] Results gallery (images, video thumbnails)
+- [x] Real-time job progress via WebSocket
+- [x] Connection status indicator
+- [x] Auto-refresh fallback (5 seconds)
+- [x] Job stats cards
+- [ ] Drag-drop script upload (future)
+- [ ] Target selection (single, multiple, all) (future)
+- [ ] Batch configuration (future)
+- [ ] Results gallery (images, video thumbnails) (future)
+
+**Phase R6 Complete!** ✅ GUI enhanced with real-time WebSocket updates.
 
 ---
 

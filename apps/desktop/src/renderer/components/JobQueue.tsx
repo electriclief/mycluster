@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 interface Job {
   id: string;
@@ -63,6 +64,22 @@ function JobQueue() {
     const s = await window.electronAPI.invoke('job:stats');
     setStats(s as JobStats);
   };
+
+  // WebSocket for real-time updates
+  const handleWSMessage = useCallback((message: { type: string; payload: unknown }) => {
+    if (message.type === 'job-progress') {
+      // Refresh jobs on job progress update
+      loadJobs();
+      loadStats();
+    }
+  }, []);
+
+  const { isConnected } = useWebSocket({
+    url: `ws://${window.location.host}/ws`,
+    onMessage: handleWSMessage,
+    autoReconnect: true,
+    reconnectInterval: 5000,
+  });
 
   useEffect(() => {
     loadComputers();
@@ -132,7 +149,14 @@ function JobQueue() {
 
   return (
     <div>
-      <h2 style={{ marginBottom: '20px', color: '#e94560' }}>Job Queue</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0, color: '#e94560' }}>Job Queue</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '0.85rem', color: '#888' }}>
+            {isConnected ? '🟢 Real-time updates' : '🔴 Connecting...'}
+          </span>
+        </div>
+      </div>
 
       {/* Stats Cards */}
       {stats && (

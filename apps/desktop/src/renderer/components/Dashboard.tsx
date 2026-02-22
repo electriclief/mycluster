@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import ServerDashboard from './ServerDashboard';
 import LanComputers from './LanComputers';
+import ClusterMetrics from './ClusterMetrics';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -71,9 +72,25 @@ function Dashboard() {
           <h3 style={{ marginBottom: '8px', color: '#aaa', fontSize: '0.9rem' }}>Version</h3>
           <p style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>v{version || '0.1.0'}</p>
         </div>
+
+        <div style={{
+          padding: '15px',
+          backgroundColor: '#16213e',
+          borderRadius: '8px',
+          border: '1px solid #0f3460',
+          cursor: 'pointer',
+        }} onClick={() => navigate('/jobs')}>
+          <h3 style={{ marginBottom: '8px', color: '#aaa', fontSize: '0.9rem' }}>Quick Actions</h3>
+          <p style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#4caf50' }}>
+            🚀 Submit Job
+          </p>
+        </div>
       </div>
 
-      {/* LAN Computers Section - Main Dashboard Content */}
+      {/* Cluster Metrics */}
+      <ClusterMetrics />
+
+      {/* LAN Computers Section */}
       <LanComputers />
     </div>
   );
